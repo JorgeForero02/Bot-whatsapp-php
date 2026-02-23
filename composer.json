@@ -1,0 +1,37 @@
+{
+    "name": "whatsapp-rag-bot/core",
+    "description": "WhatsApp Bot with RAG architecture and MySQL vector database",
+    "type": "project",
+    "require": {
+        "php": "^7.4 || ^8.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "phpoffice/phpword": "^0.18",
+        "smalot/pdfparser": "^0.18"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/",
+            "GuzzleHttp\\": "vendor/guzzlehttp/guzzle/src/",
+            "GuzzleHttp\\Psr7\\": "vendor/guzzlehttp/psr7/src/",
+            "GuzzleHttp\\Promise\\": "vendor/guzzlehttp/promises/src/",
+            "PhpOffice\\PhpWord\\": "vendor/phpoffice/phpword/src/PhpOffice/PhpWord/",
+            "Smalot\\PdfParser\\": "vendor/smalot/pdfparser/src/Smalot/PdfParser/",
+            "Psr\\Http\\Message\\": "vendor/psr/http-message/src/",
+            "Psr\\Http\\Client\\": "vendor/psr/http-client/src/",
+            "Psr\\Http\\Factory\\": "vendor/psr/http-factory/src/"
+        },
+        "files": [
+            "vendor/guzzlehttp/guzzle/src/functions_include.php"
+        ]
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "http://repo.packagist.org"
+        }
+    ],
+    "config": {
+        "disable-tls": true,
+        "secure-http": false
+    }
+}
