@@ -128,7 +128,7 @@ function escapeHtml(text) {
 
 async function loadConversations(status = null) {
     try {
-        const url = status ? `/api/get-conversations.php?status=${status}` : '/api/get-conversations.php';
+        const url = status ? `${BASE_PATH}/api/conversations?status=${status}` : BASE_PATH + '/api/conversations';
         const response = await fetch(url);
         const data = await response.json();
         
@@ -303,7 +303,7 @@ function startConversationsAutoRefresh() {
     
     conversationsRefreshInterval = setInterval(async () => {
         try {
-            const response = await fetch(`/api/check-conversation-updates.php?last_check=${encodeURIComponent(lastConversationsCheck)}`);
+            const response = await fetch(`${BASE_PATH}/api/check-conversation-updates?last_check=${encodeURIComponent(lastConversationsCheck)}`);
             const data = await response.json();
             
             if (data.success && data.has_updates) {
@@ -324,7 +324,7 @@ function startAutoRefresh() {
     autoRefreshInterval = setInterval(async () => {
         if (currentConversationId) {
             try {
-                const response = await fetch(`/api/check-updates.php?last_check=${encodeURIComponent(lastCheckTime)}&conversation_id=${currentConversationId}`);
+                const response = await fetch(`${BASE_PATH}/api/check-updates?last_check=${encodeURIComponent(lastCheckTime)}&conversation_id=${currentConversationId}`);
                 const data = await response.json();
                 
                 if (data.success && data.has_update) {
@@ -356,7 +356,7 @@ function startAutoRefresh() {
 
 async function loadMessages(conversationId, append = false) {
     try {
-        const response = await fetch(`/api/get-conversation-messages.php?id=${conversationId}&offset=${messagesOffset}&limit=20`);
+        const response = await fetch(`${BASE_PATH}/api/conversations/${conversationId}/messages?offset=${messagesOffset}&limit=20`);
         const data = await response.json();
         
         if (!data.success) {
@@ -538,7 +538,7 @@ async function sendReply() {
     sendButton.innerHTML = '<span class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>';
     
     try {
-        const response = await fetch(`/api/reply-conversation.php?id=${currentConversationId}`, {
+        const response = await fetch(`${BASE_PATH}/api/conversations/${currentConversationId}/reply`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({message})
@@ -574,7 +574,7 @@ async function toggleAI() {
     const newState = aiToggle.checked;
     
     if (newState) {
-        const statusResponse = await fetch('/api/check-openai-status.php');
+        const statusResponse = await fetch(BASE_PATH + '/api/check-openai-status');
         const statusData = await statusResponse.json();
         
         if (statusData.success && !statusData.can_enable_ai) {
@@ -585,7 +585,7 @@ async function toggleAI() {
     }
     
     try {
-        const response = await fetch(`/api/toggle-ai.php?id=${currentConversationId}`, {
+        const response = await fetch(`${BASE_PATH}/api/conversations/${currentConversationId}/toggle-ai`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

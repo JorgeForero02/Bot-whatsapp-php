@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle ?? 'WhatsApp Bot'; ?></title>
+    <script>
+        const BASE_PATH = '<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>';
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -64,16 +67,16 @@
                 
                 <div class="hidden md:flex items-center space-x-4">
                     <div class="flex items-baseline space-x-4">
-                        <a href="/" class="<?php echo ($currentPage ?? '') === 'dashboard' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                        <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/" class="<?php echo ($currentPage ?? '') === 'dashboard' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                             Dashboard
                         </a>
-                        <a href="/conversations" class="<?php echo ($currentPage ?? '') === 'conversations' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                        <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/conversations" class="<?php echo ($currentPage ?? '') === 'conversations' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                             Conversaciones
                         </a>
-                        <a href="/documents" class="<?php echo ($currentPage ?? '') === 'documents' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                        <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/documents" class="<?php echo ($currentPage ?? '') === 'documents' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                             Documentos
                         </a>
-                        <a href="/settings" class="<?php echo ($currentPage ?? '') === 'settings' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                        <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/settings" class="<?php echo ($currentPage ?? '') === 'settings' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                             Configuración
                         </a>
                     </div>
@@ -108,16 +111,16 @@
         
         <div id="mobile-menu" class="hidden md:hidden bg-secondary dark:bg-gray-700">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="/" class="<?php echo ($currentPage ?? '') === 'dashboard' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
+                <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/" class="<?php echo ($currentPage ?? '') === 'dashboard' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
                     Dashboard
                 </a>
-                <a href="/conversations" class="<?php echo ($currentPage ?? '') === 'conversations' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
+                <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/conversations" class="<?php echo ($currentPage ?? '') === 'conversations' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
                     Conversaciones
                 </a>
-                <a href="/documents" class="<?php echo ($currentPage ?? '') === 'documents' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
+                <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/documents" class="<?php echo ($currentPage ?? '') === 'documents' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
                     Documentos
                 </a>
-                <a href="/settings" class="<?php echo ($currentPage ?? '') === 'settings' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
+                <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/settings" class="<?php echo ($currentPage ?? '') === 'settings' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
                     Configuración
                 </a>
             </div>

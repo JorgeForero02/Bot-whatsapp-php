@@ -256,7 +256,7 @@ temperatureSlider?.addEventListener('input', function() {
 
 async function loadSettings() {
     try {
-        const response = await fetch('/api/get-settings.php');
+        const response = await fetch(BASE_PATH + '/api/settings');
         const data = await response.json();
         
         if (data.success && data.settings) {
@@ -298,7 +298,7 @@ async function saveSettings() {
     };
     
     try {
-        const response = await fetch('/api/save-settings.php', {
+        const response = await fetch(BASE_PATH + '/api/settings', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(settings)

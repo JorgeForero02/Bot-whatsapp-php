@@ -23,7 +23,7 @@ ob_start();
 
 async function loadStats() {
     try {
-        const response = await fetch('/api/get-stats.php');
+        const response = await fetch(BASE_PATH + '/api/stats');
         const data = await response.json();
         
         if (!data.success) {

@@ -1,6 +1,24 @@
 <?php
 
 $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+$scriptName = dirname($_SERVER['SCRIPT_NAME']);
+if ($scriptName !== '/') {
+    $basePath = $scriptName;
+} else {
+    $basePath = '';
+}
+
+if ($basePath && strpos($requestUri, $basePath) === 0) {
+    $path = substr($requestUri, strlen($basePath));
+} else {
+    $path = $requestUri;
+}
+
+if ($path === '') {
+    $path = '/';
+}
+
 $filePath = __DIR__ . $requestUri;
 
 if ($requestUri !== '/' && file_exists($filePath . '.php') && is_file($filePath . '.php')) {
@@ -24,7 +42,8 @@ $db = Database::getInstance(Config::get('database'));
 $logger = new Logger(__DIR__ . '/logs');
 
 $requestMethod = $_SERVER['REQUEST_METHOD'];
-$path = $requestUri;
+
+define('BASE_PATH', $basePath);
 
 if ($path === '' || $path === '/') {
     require __DIR__ . '/views/dashboard.php';

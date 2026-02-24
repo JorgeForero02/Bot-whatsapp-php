@@ -10,11 +10,21 @@ RewriteRule ^(.*)$ index.php [QSA,L]
     Header set X-XSS-Protection "1; mode=block"
 </IfModule>
 
-<FilesMatch "\.(php)$">
+<IfModule mod_php.c>
     php_value upload_max_filesize 10M
     php_value post_max_size 10M
     php_value max_execution_time 60
     php_value memory_limit 512M
-</FilesMatch>
+</IfModule>
 
 Options -Indexes
+
+<Files ".env">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
