@@ -40,6 +40,12 @@ return [
         'allowed_types' => ['pdf', 'txt', 'docx']
     ],
     
+    'google_calendar' => [
+        'access_token' => getenv('GOOGLE_CALENDAR_ACCESS_TOKEN') ?: '',
+        'calendar_id' => getenv('GOOGLE_CALENDAR_ID') ?: 'primary',
+        'timezone' => 'America/Bogota'
+    ],
+    
     'app' => [
         'base_url' => getenv('APP_BASE_URL') ?: 'http://localhost',
         'timezone' => 'America/New_York',

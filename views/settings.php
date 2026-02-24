@@ -181,6 +181,16 @@ ob_start();
                         Tiempo máximo de espera para obtener una respuesta de OpenAI antes de dar timeout.
                     </p>
                 </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Mensajes de Contexto
+                    </label>
+                    <input type="number" id="context-messages-count" min="0" max="20" value="5" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        Cantidad de mensajes anteriores de la conversación que el bot verá como contexto. 0 para desactivar.
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -198,11 +208,11 @@ ob_start();
     </div>
 
     <div class="lg:col-span-1">
-        <div class="bg-primary dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-white dark:text-gray-100 sticky top-6">
-            <h3 class="text-lg font-bold mb-4">Información</h3>
-            <div class="space-y-4 text-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-6">
+            <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">Información</h3>
+            <div class="space-y-4 text-sm text-gray-600 dark:text-gray-400">
                 <div class="flex items-start space-x-2">
-                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <p>Los cambios en la configuración se aplicarán inmediatamente a todas las nuevas conversaciones.</p>
@@ -244,28 +254,35 @@ temperatureSlider?.addEventListener('input', function() {
     temperatureValue.textContent = this.value;
 });
 
-function loadSettings() {
-    const savedSettings = localStorage.getItem('botSettings');
-    if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
+async function loadSettings() {
+    try {
+        const response = await fetch('/api/get-settings.php');
+        const data = await response.json();
         
-        if (settings.confidenceThreshold) confidenceSlider.value = settings.confidenceThreshold;
-        if (settings.maxResults) document.getElementById('max-results').value = settings.maxResults;
-        if (settings.chunkSize) document.getElementById('chunk-size').value = settings.chunkSize;
-        if (settings.systemPrompt) document.getElementById('system-prompt').value = settings.systemPrompt;
-        if (settings.autoReply !== undefined) document.getElementById('auto-reply').checked = settings.autoReply;
-        if (settings.welcomeMessage) document.getElementById('welcome-message').value = settings.welcomeMessage;
-        if (settings.errorMessage) document.getElementById('error-message').value = settings.errorMessage;
-        if (settings.openaiModel) document.getElementById('openai-model').value = settings.openaiModel;
-        if (settings.temperature) temperatureSlider.value = settings.temperature;
-        if (settings.timeout) document.getElementById('timeout').value = settings.timeout;
-        
-        confidenceSlider.dispatchEvent(new Event('input'));
-        temperatureSlider.dispatchEvent(new Event('input'));
+        if (data.success && data.settings) {
+            const s = data.settings;
+            
+            if (s.systemPrompt) document.getElementById('system-prompt').value = s.systemPrompt;
+            if (s.welcomeMessage) document.getElementById('welcome-message').value = s.welcomeMessage;
+            if (s.errorMessage) document.getElementById('error-message').value = s.errorMessage;
+            if (s.confidenceThreshold !== undefined) confidenceSlider.value = s.confidenceThreshold;
+            if (s.maxResults) document.getElementById('max-results').value = s.maxResults;
+            if (s.chunkSize) document.getElementById('chunk-size').value = s.chunkSize;
+            if (s.autoReply !== undefined) document.getElementById('auto-reply').checked = s.autoReply;
+            if (s.openaiModel) document.getElementById('openai-model').value = s.openaiModel;
+            if (s.temperature !== undefined) temperatureSlider.value = s.temperature;
+            if (s.timeout) document.getElementById('timeout').value = s.timeout;
+            if (s.contextMessagesCount !== undefined) document.getElementById('context-messages-count').value = s.contextMessagesCount;
+            
+            confidenceSlider.dispatchEvent(new Event('input'));
+            temperatureSlider.dispatchEvent(new Event('input'));
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
     }
 }
 
-function saveSettings() {
+async function saveSettings() {
     const settings = {
         confidenceThreshold: parseFloat(confidenceSlider.value),
         maxResults: parseInt(document.getElementById('max-results').value),
@@ -276,10 +293,27 @@ function saveSettings() {
         errorMessage: document.getElementById('error-message').value,
         openaiModel: document.getElementById('openai-model').value,
         temperature: parseFloat(temperatureSlider.value),
-        timeout: parseInt(document.getElementById('timeout').value)
+        timeout: parseInt(document.getElementById('timeout').value),
+        contextMessagesCount: parseInt(document.getElementById('context-messages-count').value)
     };
     
-    localStorage.setItem('botSettings', JSON.stringify(settings));
+    try {
+        const response = await fetch('/api/save-settings.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(settings)
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Error al guardar');
+        }
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        alert('Error al guardar la configuración en la base de datos: ' + error.message);
+        return;
+    }
     
     const notification = document.createElement('div');
     notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
@@ -298,39 +332,43 @@ function saveSettings() {
     }, 3000);
 }
 
-function resetSettings() {
-    if (confirm('¿Estás seguro de que quieres restablecer la configuración a los valores por defecto?')) {
-        localStorage.removeItem('botSettings');
-        
-        confidenceSlider.value = 0.7;
-        document.getElementById('max-results').value = '5';
-        document.getElementById('chunk-size').value = '1000';
-        document.getElementById('auto-reply').checked = true;
-        document.getElementById('welcome-message').value = '';
-        document.getElementById('error-message').value = '';
-        document.getElementById('openai-model').value = 'gpt-4';
-        temperatureSlider.value = 0.7;
-        document.getElementById('timeout').value = '30';
-        
-        confidenceSlider.dispatchEvent(new Event('input'));
-        temperatureSlider.dispatchEvent(new Event('input'));
-        
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-20 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-        notification.innerHTML = `
-            <div class="flex items-center space-x-2">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                </svg>
-                <span>Configuración restablecida</span>
-            </div>
-        `;
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
+async function resetSettings() {
+    if (!confirm('¿Estás seguro de que quieres restablecer la configuración a los valores por defecto?')) {
+        return;
     }
+    
+    confidenceSlider.value = 0.7;
+    document.getElementById('max-results').value = '5';
+    document.getElementById('chunk-size').value = '1000';
+    document.getElementById('system-prompt').value = '';
+    document.getElementById('auto-reply').checked = true;
+    document.getElementById('welcome-message').value = '';
+    document.getElementById('error-message').value = '';
+    document.getElementById('openai-model').value = 'gpt-4';
+    temperatureSlider.value = 0.7;
+    document.getElementById('timeout').value = '30';
+    document.getElementById('context-messages-count').value = '5';
+    
+    confidenceSlider.dispatchEvent(new Event('input'));
+    temperatureSlider.dispatchEvent(new Event('input'));
+    
+    await saveSettings();
+    
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-20 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+    notification.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <span>Configuración restablecida</span>
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 
 loadSettings();

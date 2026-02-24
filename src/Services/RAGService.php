@@ -26,7 +26,7 @@ class RAGService
         $this->threshold = $threshold;
     }
 
-    public function generateResponse($userMessage)
+    public function generateResponse($userMessage, $systemPrompt = null, $conversationHistory = [])
     {
         try {
             $this->logger->info('RAG: Processing query', ['message' => $userMessage]);
@@ -64,7 +64,7 @@ class RAGService
 
             $context = implode("\n\n", $contextParts);
             
-            $response = $this->openai->generateResponse($userMessage, $context);
+            $response = $this->openai->generateResponse($userMessage, $context, $systemPrompt, 0.7, 500, $conversationHistory);
 
             $this->logger->info('RAG: Response generated', [
                 'confidence' => $maxScore,

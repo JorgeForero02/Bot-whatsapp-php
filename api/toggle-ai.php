@@ -1,8 +1,16 @@
 <?php
 
-header('Content-Type: application/json');
+require_once __DIR__ . '/../vendor/autoload.php';
 
+use App\Core\Config;
 use App\Core\Database;
+use App\Core\Logger;
+
+$config = Config::load(__DIR__ . '/../config/config.php');
+$db = Database::getInstance(Config::get('database'));
+$logger = new Logger(__DIR__ . '/../logs');
+
+header('Content-Type: application/json');
 
 try {
     $id = $_GET['id'] ?? null;
@@ -11,6 +19,23 @@ try {
 
     if (!$id || $aiEnabled === null) {
         throw new \InvalidArgumentException('Conversation ID and ai_enabled state required');
+    }
+
+    if ($aiEnabled) {
+        $openaiStatus = $db->fetchOne(
+            "SELECT setting_value FROM settings WHERE setting_key = 'openai_status'",
+            []
+        );
+        
+        if ($openaiStatus && $openaiStatus['setting_value'] === 'insufficient_funds') {
+            http_response_code(402);
+            echo json_encode([
+                'success' => false,
+                'error' => 'INSUFFICIENT_FUNDS',
+                'message' => 'No se puede activar la IA. Fondos insuficientes en OpenAI.'
+            ]);
+            exit;
+        }
     }
 
     $db->query(

@@ -224,7 +224,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
     `;
     
     try {
-        const response = await fetch('/public/api/upload', {
+        const response = await fetch('/api/upload.php', {
             method: 'POST',
             body: formData
         });
@@ -276,7 +276,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
 
 async function loadDocuments() {
     try {
-        const response = await fetch('/public/api/documents');
+        const response = await fetch('/api/get-documents.php');
         const data = await response.json();
         
         if (!data.success) {
@@ -396,7 +396,7 @@ async function deleteDocument(id, name) {
     `;
     
     try {
-        const response = await fetch(`/public/api/documents/${id}`, {
+        const response = await fetch(`/api/delete-document.php?id=${id}`, {
             method: 'DELETE'
         });
         
@@ -438,7 +438,7 @@ async function viewDocument(id, name) {
     `;
     
     try {
-        const response = await fetch(`/public/api/documents/${id}/content`);
+        const response = await fetch(`/api/get-document-content.php?id=${id}`);
         const data = await response.json();
         
         if (!data.success) {

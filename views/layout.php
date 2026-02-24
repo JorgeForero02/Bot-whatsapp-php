@@ -64,16 +64,16 @@
                 
                 <div class="hidden md:flex items-center space-x-4">
                     <div class="flex items-baseline space-x-4">
-                        <a href="/public/" class="<?php echo ($currentPage ?? '') === 'dashboard' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                        <a href="/" class="<?php echo ($currentPage ?? '') === 'dashboard' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                             Dashboard
                         </a>
-                        <a href="/public/conversations" class="<?php echo ($currentPage ?? '') === 'conversations' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                        <a href="/conversations" class="<?php echo ($currentPage ?? '') === 'conversations' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                             Conversaciones
                         </a>
-                        <a href="/public/documents" class="<?php echo ($currentPage ?? '') === 'documents' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                        <a href="/documents" class="<?php echo ($currentPage ?? '') === 'documents' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                             Documentos
                         </a>
-                        <a href="/public/settings" class="<?php echo ($currentPage ?? '') === 'settings' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                        <a href="/settings" class="<?php echo ($currentPage ?? '') === 'settings' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                             Configuración
                         </a>
                     </div>
@@ -108,16 +108,16 @@
         
         <div id="mobile-menu" class="hidden md:hidden bg-secondary dark:bg-gray-700">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="/public/" class="<?php echo ($currentPage ?? '') === 'dashboard' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
+                <a href="/" class="<?php echo ($currentPage ?? '') === 'dashboard' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
                     Dashboard
                 </a>
-                <a href="/public/conversations" class="<?php echo ($currentPage ?? '') === 'conversations' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
+                <a href="/conversations" class="<?php echo ($currentPage ?? '') === 'conversations' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
                     Conversaciones
                 </a>
-                <a href="/public/documents" class="<?php echo ($currentPage ?? '') === 'documents' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
+                <a href="/documents" class="<?php echo ($currentPage ?? '') === 'documents' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
                     Documentos
                 </a>
-                <a href="/public/settings" class="<?php echo ($currentPage ?? '') === 'settings' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
+                <a href="/settings" class="<?php echo ($currentPage ?? '') === 'settings' ? 'bg-primary' : ''; ?> text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-primary transition-all">
                     Configuración
                 </a>
             </div>

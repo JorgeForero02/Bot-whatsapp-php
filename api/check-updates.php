@@ -1,8 +1,16 @@
 <?php
 
-header('Content-Type: application/json');
+require_once __DIR__ . '/../vendor/autoload.php';
 
+use App\Core\Config;
 use App\Core\Database;
+use App\Core\Logger;
+
+$config = Config::load(__DIR__ . '/../config/config.php');
+$db = Database::getInstance(Config::get('database'));
+$logger = new Logger(__DIR__ . '/../logs');
+
+header('Content-Type: application/json');
 
 try {
     $lastCheck = $_GET['last_check'] ?? null;
@@ -12,7 +20,6 @@ try {
         throw new \InvalidArgumentException('last_check timestamp is required');
     }
 
-    // Verificar si hay actualizaciones para una conversación específica
     if ($conversationId) {
         $conversation = $db->fetchOne(
             'SELECT id, last_bot_message_at FROM conversations WHERE id = :id',
@@ -32,7 +39,6 @@ try {
             'conversation_id' => $conversationId
         ]);
     } else {
-        // Verificar si hay actualizaciones en cualquier conversación
         $updatedConversations = $db->fetchAll(
             'SELECT id FROM conversations WHERE last_bot_message_at > :last_check',
             [':last_check' => $lastCheck]

@@ -43,16 +43,24 @@ class ConversationService
         );
     }
 
-    public function addMessage($conversationId, $senderType, $messageText, $messageId = null, $contextUsed = null, $confidenceScore = null)
+    public function addMessage($conversationId, $senderType, $messageText, $messageId = null, $contextUsed = null, $confidenceScore = null, $audioUrl = null, $mediaType = 'text')
     {
-        return $this->db->insert('messages', [
-            'conversation_id' => $conversationId,
-            'message_id' => $messageId,
-            'sender_type' => $senderType,
-            'message_text' => $messageText,
-            'context_used' => $contextUsed,
-            'confidence_score' => $confidenceScore
-        ]);
+        $this->db->query(
+            'INSERT INTO messages (conversation_id, message_id, sender_type, message_text, audio_url, media_type, context_used, confidence_score) 
+             VALUES (:conversation_id, :message_id, :sender_type, :message_text, :audio_url, :media_type, :context_used, :confidence_score)',
+            [
+                ':conversation_id' => $conversationId,
+                ':message_id' => $messageId,
+                ':sender_type' => $senderType,
+                ':message_text' => $messageText,
+                ':audio_url' => $audioUrl,
+                ':media_type' => $mediaType,
+                ':context_used' => $contextUsed,
+                ':confidence_score' => $confidenceScore
+            ]
+        );
+        
+        return $this->db->lastInsertId();
     }
 
     public function getConversationHistory($conversationId, $limit = 50)

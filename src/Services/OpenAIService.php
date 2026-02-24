@@ -48,25 +48,51 @@ class OpenAIService
             }
 
             throw new \RuntimeException('Invalid embedding response');
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $response = $e->getResponse();
+            $body = json_decode($response->getBody()->getContents(), true);
+            
+            if ($response->getStatusCode() === 429 || 
+                (isset($body['error']['code']) && $body['error']['code'] === 'insufficient_quota')) {
+                $this->logger->error('OpenAI Insufficient Funds: ' . ($body['error']['message'] ?? 'Quota exceeded'));
+                throw new \RuntimeException('INSUFFICIENT_FUNDS');
+            }
+            
+            $this->logger->error('OpenAI Embedding Error: ' . $e->getMessage());
+            throw $e;
         } catch (\Exception $e) {
             $this->logger->error('OpenAI Embedding Error: ' . $e->getMessage());
             throw $e;
         }
     }
 
-    public function generateResponse($prompt, $context = '', $temperature = 0.7, $maxTokens = 500)
+    public function generateResponse($prompt, $context = '', $systemPrompt = null, $temperature = 0.7, $maxTokens = 500, $conversationHistory = [])
     {
         try {
-            $systemMessage = 'Eres un asistente virtual útil y amigable. Responde de manera clara y concisa basándote en el contexto proporcionado.';
+            $systemMessage = $systemPrompt ?? 'Eres un asistente virtual útil y amigable. Responde de manera clara y concisa basándote en el contexto proporcionado.';
+            
+            $messages = [
+                ['role' => 'system', 'content' => $systemMessage]
+            ];
             
             if (!empty($context)) {
-                $systemMessage .= "\n\nContexto relevante:\n" . $context;
+                $messages[] = [
+                    'role' => 'system',
+                    'content' => "Contexto relevante:\n" . $context
+                ];
             }
-
-            $messages = [
-                ['role' => 'system', 'content' => $systemMessage],
-                ['role' => 'user', 'content' => $prompt]
-            ];
+            
+            if (!empty($conversationHistory)) {
+                foreach ($conversationHistory as $historyMsg) {
+                    $role = $historyMsg['sender'] === 'bot' ? 'assistant' : 'user';
+                    $messages[] = [
+                        'role' => $role,
+                        'content' => $historyMsg['message_text']
+                    ];
+                }
+            }
+            
+            $messages[] = ['role' => 'user', 'content' => $prompt];
 
             $response = $this->client->post('chat/completions', [
                 'json' => [
@@ -84,8 +110,67 @@ class OpenAIService
             }
 
             throw new \RuntimeException('Invalid chat response');
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $response = $e->getResponse();
+            $body = json_decode($response->getBody()->getContents(), true);
+            
+            if ($response->getStatusCode() === 429 || 
+                (isset($body['error']['code']) && $body['error']['code'] === 'insufficient_quota')) {
+                $this->logger->error('OpenAI Insufficient Funds: ' . ($body['error']['message'] ?? 'Quota exceeded'));
+                throw new \RuntimeException('INSUFFICIENT_FUNDS');
+            }
+            
+            $this->logger->error('OpenAI Generation Error: ' . $e->getMessage());
+            throw $e;
         } catch (\Exception $e) {
             $this->logger->error('OpenAI Generation Error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function transcribeAudio($audioContent, $filename = 'audio.ogg')
+    {
+        try {
+            // Save audio to temp file
+            $tempFile = sys_get_temp_dir() . '/' . uniqid() . '_' . $filename;
+            file_put_contents($tempFile, $audioContent);
+
+            $response = $this->client->post('audio/transcriptions', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->apiKey
+                ],
+                'multipart' => [
+                    [
+                        'name' => 'file',
+                        'contents' => fopen($tempFile, 'r'),
+                        'filename' => $filename
+                    ],
+                    [
+                        'name' => 'model',
+                        'contents' => 'whisper-1'
+                    ],
+                    [
+                        'name' => 'language',
+                        'contents' => 'es'
+                    ]
+                ]
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+            
+            // Delete temp file
+            unlink($tempFile);
+
+            if (isset($data['text'])) {
+                $this->logger->info('Whisper: Audio transcribed', [
+                    'text_length' => strlen($data['text'])
+                ]);
+                return $data['text'];
+            }
+
+            throw new \RuntimeException('Invalid transcription response');
+        } catch (\Exception $e) {
+            $this->logger->error('Whisper Transcription Error: ' . $e->getMessage());
             throw $e;
         }
     }

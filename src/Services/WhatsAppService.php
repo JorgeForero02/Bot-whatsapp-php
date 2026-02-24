@@ -60,6 +60,49 @@ class WhatsAppService
         }
     }
 
+    public function getMediaUrl($mediaId)
+    {
+        try {
+            $response = $this->client->get($mediaId, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->accessToken
+                ]
+            ]);
+
+            $mediaData = json_decode($response->getBody()->getContents(), true);
+            return $mediaData['url'] ?? null;
+
+        } catch (\Exception $e) {
+            $this->logger->error('WhatsApp Get Media URL Error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function downloadMedia($mediaId)
+    {
+        try {
+            // Get media URL
+            $mediaUrl = $this->getMediaUrl($mediaId);
+
+            if (!$mediaUrl) {
+                throw new \Exception('Media URL not found');
+            }
+
+            // Download media file
+            $fileResponse = $this->client->get($mediaUrl, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->accessToken
+                ]
+            ]);
+
+            return $fileResponse->getBody()->getContents();
+
+        } catch (\Exception $e) {
+            $this->logger->error('WhatsApp Media Download Error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
     public function markAsRead($messageId)
     {
         try {
@@ -98,21 +141,31 @@ class WhatsAppService
         }
 
         $value = $payload['entry'][0]['changes'][0]['value'];
-
+        
         if (!isset($value['messages'][0])) {
             return null;
         }
 
         $message = $value['messages'][0];
-        $contact = $value['contacts'][0] ?? [];
-
-        return [
-            'message_id' => $message['id'] ?? null,
+        $messageType = $message['type'] ?? 'text';
+        
+        $data = [
             'from' => $message['from'] ?? null,
-            'timestamp' => $message['timestamp'] ?? null,
-            'type' => $message['type'] ?? 'text',
-            'text' => $message['text']['body'] ?? '',
-            'contact_name' => $contact['profile']['name'] ?? 'Unknown'
+            'text' => '',
+            'message_id' => $message['id'] ?? null,
+            'timestamp' => $message['timestamp'] ?? time(),
+            'contact_name' => $value['contacts'][0]['profile']['name'] ?? 'Unknown',
+            'type' => $messageType
         ];
+
+        // Handle different message types
+        if ($messageType === 'text') {
+            $data['text'] = $message['text']['body'] ?? '';
+        } elseif ($messageType === 'audio') {
+            $data['audio_id'] = $message['audio']['id'] ?? null;
+            $data['mime_type'] = $message['audio']['mime_type'] ?? 'audio/ogg';
+        }
+
+        return $data;
     }
 }

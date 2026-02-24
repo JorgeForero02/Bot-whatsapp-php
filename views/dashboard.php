@@ -23,7 +23,7 @@ ob_start();
 
 async function loadStats() {
     try {
-        const response = await fetch('/public/api/stats');
+        const response = await fetch('/api/get-stats.php');
         const data = await response.json();
         
         if (!data.success) {
@@ -149,7 +149,7 @@ async function loadStats() {
                 <div class="bg-primary dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 text-white dark:text-gray-100">
                     <h2 class="text-xl font-bold mb-4">Acciones Rápidas</h2>
                     <div class="space-y-3">
-                        <a href="/public/conversations" class="block bg-white dark:bg-gray-700 bg-opacity-20 dark:bg-opacity-100 hover:bg-opacity-30 dark:hover:bg-gray-600 rounded-lg p-4 transition-all">
+                        <a href="/conversations" class="block bg-white dark:bg-gray-700 bg-opacity-20 dark:bg-opacity-100 hover:bg-opacity-30 dark:hover:bg-gray-600 rounded-lg p-4 transition-all">
                             <div class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
@@ -157,7 +157,7 @@ async function loadStats() {
                                 <span class="font-medium">Ver Conversaciones</span>
                             </div>
                         </a>
-                        <a href="/public/documents" class="block bg-white dark:bg-gray-700 bg-opacity-20 dark:bg-opacity-100 hover:bg-opacity-30 dark:hover:bg-gray-600 rounded-lg p-4 transition-all">
+                        <a href="/documents" class="block bg-white dark:bg-gray-700 bg-opacity-20 dark:bg-opacity-100 hover:bg-opacity-30 dark:hover:bg-gray-600 rounded-lg p-4 transition-all">
                             <div class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>

@@ -117,10 +117,18 @@ let messagesOffset = 0;
 let hasMoreMessages = false;
 let autoRefreshInterval = null;
 let lastCheckTime = new Date().toISOString();
+let lastConversationsCheck = new Date().toISOString();
+let conversationsRefreshInterval = null;
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 async function loadConversations(status = null) {
     try {
-        const url = status ? `/public/api/conversations?status=${status}` : '/public/api/conversations';
+        const url = status ? `/api/get-conversations.php?status=${status}` : '/api/get-conversations.php';
         const response = await fetch(url);
         const data = await response.json();
         
@@ -147,6 +155,7 @@ async function loadConversations(status = null) {
 
 function renderConversationsList(conversations) {
     const container = document.getElementById('conversations-list');
+    const fragment = document.createDocumentFragment();
     
     if (conversations.length === 0) {
         container.innerHTML = `
@@ -245,7 +254,7 @@ function updateFilterButtons() {
         if (key === currentFilter) {
             buttons[key].className = 'flex-1 px-3 py-2 text-sm font-medium rounded-lg bg-primary text-white transition-all';
         } else {
-            buttons[key].className = 'flex-1 px-3 py-2 text-sm font-medium rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all';
+            buttons[key].className = 'flex-1 px-3 py-2 text-sm font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 transition-all';
         }
     });
 }
@@ -284,6 +293,27 @@ async function viewConversation(id, name, phone) {
     renderConversationsList(allConversations);
     
     startAutoRefresh();
+    startConversationsAutoRefresh();
+}
+
+function startConversationsAutoRefresh() {
+    if (conversationsRefreshInterval) {
+        clearInterval(conversationsRefreshInterval);
+    }
+    
+    conversationsRefreshInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/check-conversation-updates.php?last_check=${encodeURIComponent(lastConversationsCheck)}`);
+            const data = await response.json();
+            
+            if (data.success && data.has_updates) {
+                await loadConversations(currentFilter === 'all' ? null : currentFilter);
+                lastConversationsCheck = new Date().toISOString();
+            }
+        } catch (error) {
+            console.error('Error checking conversation updates:', error);
+        }
+    }, 3000);
 }
 
 function startAutoRefresh() {
@@ -294,7 +324,7 @@ function startAutoRefresh() {
     autoRefreshInterval = setInterval(async () => {
         if (currentConversationId) {
             try {
-                const response = await fetch(`/public/api/check-updates?last_check=${encodeURIComponent(lastCheckTime)}&conversation_id=${currentConversationId}`);
+                const response = await fetch(`/api/check-updates.php?last_check=${encodeURIComponent(lastCheckTime)}&conversation_id=${currentConversationId}`);
                 const data = await response.json();
                 
                 if (data.success && data.has_update) {
@@ -326,7 +356,7 @@ function startAutoRefresh() {
 
 async function loadMessages(conversationId, append = false) {
     try {
-        const response = await fetch(`/public/api/conversations/${conversationId}/messages?offset=${messagesOffset}&limit=20`);
+        const response = await fetch(`/api/get-conversation-messages.php?id=${conversationId}&offset=${messagesOffset}&limit=20`);
         const data = await response.json();
         
         if (!data.success) {
@@ -357,7 +387,28 @@ async function loadMessages(conversationId, append = false) {
                     <div class="flex ${isUser ? 'justify-start' : 'justify-end'} message-bubble">
                         <div class="max-w-xs lg:max-w-md xl:max-w-lg">
                             <div class="${isUser ? 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600' : 'bg-primary'} rounded-2xl px-4 py-2 shadow-sm">
-                                <p class="${isUser ? 'text-gray-900 dark:text-gray-100' : 'text-white'} text-sm break-words">${msg.message_text}</p>
+                                ${msg.media_type === 'audio' && msg.audio_url ? `
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <svg class="w-5 h-5 ${isUser ? 'text-primary' : 'text-white'}" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span class="text-xs font-semibold ${isUser ? 'text-gray-700 dark:text-gray-300' : 'text-white'}">Mensaje de voz</span>
+                                    </div>
+                                    <audio controls class="w-full rounded" style="max-width: 280px; height: 40px;">
+                                        <source src="${msg.audio_url}" type="audio/ogg">
+                                        Tu navegador no soporta audio.
+                                    </audio>
+                                    <details class="mt-3">
+                                        <summary class="cursor-pointer text-xs ${isUser ? 'text-gray-500 dark:text-gray-400' : 'text-white opacity-75'} hover:underline">
+                                            Ver transcripción
+                                        </summary>
+                                        <div class="mt-2 p-2 ${isUser ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white bg-opacity-20'} rounded text-xs ${isUser ? 'text-gray-700 dark:text-gray-300' : 'text-white'} italic">
+                                            ${escapeHtml(msg.message_text.replace('[Audio] ', ''))}
+                                        </div>
+                                    </details>
+                                ` : `
+                                    <p class="${isUser ? 'text-gray-900 dark:text-gray-100' : 'text-white'} text-sm break-words">${escapeHtml(msg.message_text)}</p>
+                                `}
                             </div>
                             <div class="flex items-center ${isUser ? 'justify-start' : 'justify-end'} mt-1 px-2 space-x-2">
                                 <span class="text-xs text-gray-500 dark:text-gray-400">${time}</span>
@@ -466,6 +517,11 @@ function closeChat() {
         autoRefreshInterval = null;
     }
     
+    if (conversationsRefreshInterval) {
+        clearInterval(conversationsRefreshInterval);
+        conversationsRefreshInterval = null;
+    }
+    
     renderConversationsList(allConversations);
 }
 
@@ -482,7 +538,7 @@ async function sendReply() {
     sendButton.innerHTML = '<span class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>';
     
     try {
-        const response = await fetch(`/public/api/conversations/${currentConversationId}/reply`, {
+        const response = await fetch(`/api/reply-conversation.php?id=${currentConversationId}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({message})
@@ -517,11 +573,26 @@ async function toggleAI() {
     const aiToggle = document.getElementById('ai-toggle');
     const newState = aiToggle.checked;
     
+    if (newState) {
+        const statusResponse = await fetch('/api/check-openai-status.php');
+        const statusData = await statusResponse.json();
+        
+        if (statusData.success && !statusData.can_enable_ai) {
+            alert('⚠️ No se puede activar la IA.\n\nFondos insuficientes en OpenAI.\nPor favor recarga tu cuenta de OpenAI.');
+            aiToggle.checked = false;
+            return;
+        }
+    }
+    
     try {
-        const response = await fetch(`/public/api/conversations/${currentConversationId}/ai-toggle`, {
+        const response = await fetch(`/api/toggle-ai.php?id=${currentConversationId}`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ai_enabled: newState})
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ai_enabled: newState
+            })
         });
         
         const data = await response.json();

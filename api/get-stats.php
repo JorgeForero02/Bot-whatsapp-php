@@ -1,11 +1,19 @@
 <?php
 
-header('Content-Type: application/json');
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Core\Config;
+use App\Core\Database;
+use App\Core\Logger;
 use App\Services\ConversationService;
 use App\Services\DocumentService;
 use App\Services\VectorSearchService;
+
+$config = Config::load(__DIR__ . '/../config/config.php');
+$db = Database::getInstance(Config::get('database'));
+$logger = new Logger(__DIR__ . '/../logs');
+
+header('Content-Type: application/json');
 
 try {
     $conversationService = new ConversationService($db);
