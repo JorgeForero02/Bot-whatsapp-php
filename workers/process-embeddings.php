@@ -35,6 +35,8 @@ while (true) {
             continue;
         }
         
+        $processedDocuments = [];
+        
         foreach ($pendingChunks as $chunk) {
             try {
                 $logger->info('Processing chunk', ['chunk_id' => $chunk['id']]);
@@ -52,6 +54,8 @@ while (true) {
                 
                 $logger->info('Chunk processed successfully', ['chunk_id' => $chunk['id']]);
                 
+                $processedDocuments[$chunk['document_id']] = true;
+                
                 sleep(1);
                 
             } catch (\Exception $e) {
@@ -66,6 +70,22 @@ while (true) {
                 }
                 
                 sleep(5);
+            }
+        }
+        
+        foreach (array_keys($processedDocuments) as $documentId) {
+            try {
+                $count = $db->fetchOne(
+                    'SELECT COUNT(*) as total FROM vectors WHERE document_id = :id AND embedding IS NOT NULL',
+                    [':id' => $documentId]
+                );
+                
+                $db->query(
+                    'UPDATE documents SET chunk_count = :count WHERE id = :id',
+                    [':count' => $count['total'], ':id' => $documentId]
+                );
+            } catch (\Exception $e) {
+                $logger->error('Error updating chunk_count for document ' . $documentId . ': ' . $e->getMessage());
             }
         }
         

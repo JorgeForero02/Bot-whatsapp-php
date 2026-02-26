@@ -40,18 +40,11 @@ return [
         'allowed_types' => ['pdf', 'txt', 'docx']
     ],
     
-    'google_calendar' => [
-        'access_token' => getenv('GOOGLE_CALENDAR_ACCESS_TOKEN'),
-        'refresh_token' => getenv('GOOGLE_CALENDAR_REFRESH_TOKEN'),
-        'client_id' => getenv('GOOGLE_CALENDAR_CLIENT_ID'),
-        'client_secret' => getenv('GOOGLE_CALENDAR_CLIENT_SECRET'),
-        'calendar_id' => getenv('GOOGLE_CALENDAR_ID') ?: 'primary',
-        'timezone' => getenv('GOOGLE_CALENDAR_TIMEZONE') ?: 'America/Bogota'
-    ],
+    'google_calendar' => require __DIR__ . '/calendar.php',
     
     'app' => [
         'base_url' => getenv('APP_BASE_URL') ?: 'http://localhost',
-        'timezone' => 'America/New_York',
+        'timezone' => 'America/Bogota',
         'debug' => getenv('APP_DEBUG') === 'true'
     ]
 ];

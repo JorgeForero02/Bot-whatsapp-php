@@ -79,6 +79,9 @@
                         <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/settings" class="<?php echo ($currentPage ?? '') === 'settings' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                             Configuración
                         </a>
+                        <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/calendar-settings" class="<?php echo ($currentPage ?? '') === 'calendar-settings' ? 'bg-secondary' : 'hover:bg-secondary hover:bg-opacity-75'; ?> text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                            Horarios Calendar
+                        </a>
                     </div>
                     
                     <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 text-white transition-all" title="Cambiar modo">

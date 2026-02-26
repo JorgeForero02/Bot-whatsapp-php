@@ -131,7 +131,6 @@ class OpenAIService
     public function transcribeAudio($audioContent, $filename = 'audio.ogg')
     {
         try {
-            // Save audio to temp file
             $tempFile = sys_get_temp_dir() . '/' . uniqid() . '_' . $filename;
             file_put_contents($tempFile, $audioContent);
 
@@ -158,7 +157,6 @@ class OpenAIService
 
             $data = json_decode($response->getBody()->getContents(), true);
             
-            // Delete temp file
             unlink($tempFile);
 
             if (isset($data['text'])) {

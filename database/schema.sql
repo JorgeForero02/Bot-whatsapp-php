@@ -10,10 +10,12 @@ CREATE TABLE IF NOT EXISTS documents (
     content_text LONGTEXT NOT NULL,
     chunk_count INT DEFAULT 0,
     file_size INT NOT NULL,
+    file_hash VARCHAR(32),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_created (created_at),
-    INDEX idx_file_type (file_type)
+    INDEX idx_file_type (file_type),
+    UNIQUE KEY idx_file_hash (file_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS vectors (
@@ -85,23 +87,35 @@ CAPACIDADES PRINCIPALES:
 
 1. Información General: Responde preguntas sobre servicios, productos y consultas generales usando tu base de conocimientos.
 
-2. Gestión de Agenda con Google Calendar: Tienes acceso directo a Google Calendar y puedes agendar, programar y apartar citas automáticamente, consultar disponibilidad y eventos próximos, crear eventos en el calendario del cliente.
-   
-   Cuando un cliente mencione palabras como cita, agenda, agendar, programar, apartar, reservar, quiero una cita, necesito agendar, debes ayudarle a agendar.
-   
-   NO digas no tengo capacidad de agendar - TÚ SÍ PUEDES AGENDAR directamente en Google Calendar.
-
-3. Base de Conocimientos RAG: Usa documentos cargados en el sistema para dar respuestas precisas y actualizadas.
-
-INSTRUCCIONES PARA AGENDAR CITAS:
-
-Cuando un cliente solicite agendar una cita, si falta información solicita primero la FECHA en formato claro, luego solicita la HORA, confirma al crear el evento.
-   
-Formatos de fecha: DD/MM/AAAA, texto completo, relativo.
-Formatos de hora: 24 horas, 12 horas con AM/PM.
+2. Base de Conocimientos RAG: Usa documentos cargados en el sistema para dar respuestas precisas y actualizadas.
 
 TONO Y ESTILO:
 
-Profesional pero cercano, respuestas concisas y directas, siempre confirma las acciones realizadas.
+Profesional pero cercano, respuestas concisas y directas, siempre confirma las acciones realizadas.', 'text');
 
-TÚ TIENES INTEGRACIÓN DIRECTA CON GOOGLE CALENDAR. Cuando alguien pida agendar, programar o apartar una cita, NO digas que no puedes. Simplemente solicita la información necesaria y confirma que agendaste la cita.', 'text');
+-- Tabla de configuración de Google Calendar
+CREATE TABLE IF NOT EXISTS calendar_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Configuración inicial de Calendar
+INSERT INTO calendar_settings (setting_key, setting_value) VALUES
+('timezone', 'America/Bogota'),
+('default_duration_minutes', '60'),
+('max_events_per_day', '10'),
+('min_advance_hours', '1'),
+('business_hours_monday', '{"enabled":true,"start":"09:00","end":"18:00"}'),
+('business_hours_tuesday', '{"enabled":true,"start":"09:00","end":"18:00"}'),
+('business_hours_wednesday', '{"enabled":true,"start":"09:00","end":"18:00"}'),
+('business_hours_thursday', '{"enabled":true,"start":"09:00","end":"18:00"}'),
+('business_hours_friday', '{"enabled":true,"start":"09:00","end":"18:00"}'),
+('business_hours_saturday', '{"enabled":true,"start":"10:00","end":"14:00"}'),
+('business_hours_sunday', '{"enabled":false,"start":"09:00","end":"18:00"}'),
+('reminder_email_enabled', 'true'),
+('reminder_email_minutes', '1440'),
+('reminder_popup_enabled', 'true'),
+('reminder_popup_minutes', '30')
+ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);

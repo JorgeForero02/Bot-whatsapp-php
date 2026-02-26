@@ -50,13 +50,25 @@ class DocumentService
 
         try {
             $text = TextProcessor::extractText($filepath, $extension);
+            $fileHash = hash_file('md5', $filepath);
+            
+            $existing = $this->db->fetchOne(
+                'SELECT id, original_name FROM documents WHERE file_hash = :hash',
+                [':hash' => $fileHash]
+            );
+            
+            if ($existing) {
+                unlink($filepath);
+                throw new \RuntimeException('Documento duplicado: "' . $existing['original_name'] . '" ya fue subido previamente');
+            }
             
             $documentId = $this->db->insert('documents', [
                 'filename' => $filename,
                 'original_name' => $originalName,
                 'file_type' => $extension,
                 'content_text' => $text,
-                'file_size' => $file['size']
+                'file_size' => $file['size'],
+                'file_hash' => $fileHash
             ]);
 
             return [

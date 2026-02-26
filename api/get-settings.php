@@ -1,5 +1,8 @@
 <?php
 
+if (ob_get_level()) ob_end_clean();
+ob_start();
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Core\Config;
@@ -70,6 +73,7 @@ try {
         }
     }
 
+    ob_clean();
     echo json_encode([
         'success' => true,
         'settings' => $response
@@ -80,6 +84,7 @@ try {
         $logger->error('Get Settings Error: ' . $e->getMessage());
     }
     http_response_code(500);
+    ob_clean();
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage()

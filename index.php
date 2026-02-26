@@ -65,6 +65,11 @@ if ($path === '/settings') {
     exit;
 }
 
+if ($path === '/calendar-settings') {
+    require __DIR__ . '/views/calendar_settings.php';
+    exit;
+}
+
 if ($requestMethod === 'POST' && $path === '/api/upload') {
     require __DIR__ . '/api/upload.php';
     exit;
@@ -142,6 +147,16 @@ if ($requestMethod === 'GET' && $path === '/api/settings') {
 
 if ($requestMethod === 'POST' && $path === '/api/settings') {
     require __DIR__ . '/api/save-settings.php';
+    exit;
+}
+
+if ($requestMethod === 'GET' && $path === '/api/get-calendar-settings') {
+    require __DIR__ . '/api/get-calendar-settings.php';
+    exit;
+}
+
+if ($requestMethod === 'POST' && $path === '/api/save-calendar-settings') {
+    require __DIR__ . '/api/save-calendar-settings.php';
     exit;
 }
 

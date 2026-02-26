@@ -13,15 +13,17 @@ class GoogleCalendarService
     private $clientId;
     private $clientSecret;
     private $calendarId;
+    private $timezone;
     private $logger;
 
-    public function __construct($accessToken, $calendarId, Logger $logger, $refreshToken = null, $clientId = null, $clientSecret = null)
+    public function __construct($accessToken, $calendarId, Logger $logger, $timezone = 'America/Bogota', $refreshToken = null, $clientId = null, $clientSecret = null)
     {
         $this->accessToken = $accessToken;
         $this->refreshToken = $refreshToken;
         $this->clientId = $clientId;
         $this->clientSecret = $clientSecret;
         $this->calendarId = $calendarId;
+        $this->timezone = $timezone;
         $this->logger = $logger;
 
         $this->client = new Client([
@@ -99,7 +101,6 @@ class GoogleCalendarService
                 'query' => [
                     'maxResults' => $maxResults,
                     'orderBy' => 'startTime',
-                    'singleEvents' => true,
                     'timeMin' => date('c')
                 ]
             ]);
@@ -118,8 +119,7 @@ class GoogleCalendarService
             $data = $this->makeRequest('get', "calendars/{$this->calendarId}/events", [
                 'query' => [
                     'timeMin' => $timeMin,
-                    'timeMax' => $timeMax,
-                    'singleEvents' => true
+                    'timeMax' => $timeMax
                 ]
             ]);
             
@@ -138,11 +138,11 @@ class GoogleCalendarService
                 'description' => $description,
                 'start' => [
                     'dateTime' => $startDateTime,
-                    'timeZone' => 'America/Bogota'
+                    'timeZone' => $this->timezone
                 ],
                 'end' => [
                     'dateTime' => $endDateTime,
-                    'timeZone' => 'America/Bogota'
+                    'timeZone' => $this->timezone
                 ],
                 'reminders' => [
                     'useDefault' => false,
@@ -170,7 +170,6 @@ class GoogleCalendarService
 
     public function validateDateFormat($dateText)
     {
-        // Try DD/MM/YYYY format
         if (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/', $dateText, $matches)) {
             $day = intval($matches[1]);
             $month = intval($matches[2]);
@@ -181,7 +180,6 @@ class GoogleCalendarService
             }
         }
         
-        // Try text format: "24 de febrero del 2026", "24 de febrero de 2026"
         $months = [
             'enero' => 1, 'febrero' => 2, 'marzo' => 3, 'abril' => 4,
             'mayo' => 5, 'junio' => 6, 'julio' => 7, 'agosto' => 8,
@@ -199,7 +197,6 @@ class GoogleCalendarService
             }
         }
         
-        // Try relative dates
         $textLower = mb_strtolower($dateText);
         if (strpos($textLower, 'mañana') !== false) {
             return date('Y-m-d', strtotime('+1 day'));
@@ -214,73 +211,129 @@ class GoogleCalendarService
         return null;
     }
 
-    public function parseEventFromText($text)
+    public function checkEventOverlap($date, $startTime, $endTime)
     {
-        $result = [
-            'title' => null,
-            'date' => null,
-            'time' => null,
-            'duration' => 1
-        ];
+        try {
+            $timeMin = (new \DateTime("{$date} {$startTime}", new \DateTimeZone($this->timezone)))->format(\DateTime::RFC3339);
+            $timeMax = (new \DateTime("{$date} {$endTime}", new \DateTimeZone($this->timezone)))->format(\DateTime::RFC3339);
+            
+            $data = $this->makeRequest('get', "calendars/{$this->calendarId}/events", [
+                'query' => [
+                    'timeMin' => $timeMin,
+                    'timeMax' => $timeMax
+                ]
+            ]);
+            
+            if (!empty($data['items'])) {
+                return [
+                    'overlap' => true,
+                    'events' => $data['items']
+                ];
+            }
+            
+            return ['overlap' => false, 'events' => []];
+        } catch (\Exception $e) {
+            $this->logger->error('Error checking overlap: ' . $e->getMessage());
+            throw $e;
+        }
+    }
 
-        // Patterns for extracting event info
-        // Format: "agendar: Título - DD/MM/YYYY - HH:MM - X hora(s)"
-        // Or: "Título para mañana a las 3pm"
-        
-        // Try to extract date patterns
-        if (preg_match('/(\d{1,2})\/(\d{1,2})\/(\d{4})/', $text, $matches)) {
-            $result['date'] = "{$matches[3]}-{$matches[2]}-{$matches[1]}";
+    public function getEventsByDateRange($startDate, $endDate, $maxResults = 50)
+    {
+        try {
+            $timeMin = (new \DateTime($startDate, new \DateTimeZone($this->timezone)))->format(\DateTime::RFC3339);
+            $timeMax = (new \DateTime($endDate . ' 23:59:59', new \DateTimeZone($this->timezone)))->format(\DateTime::RFC3339);
+            
+            return $this->makeRequest('get', "calendars/{$this->calendarId}/events", [
+                'query' => [
+                    'timeMin' => $timeMin,
+                    'timeMax' => $timeMax,
+                    'maxResults' => $maxResults,
+                    'orderBy' => 'startTime'
+                ]
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Error getting events by date range: ' . $e->getMessage());
+            throw $e;
         }
-        
-        // Try relative dates
-        if (preg_match('/mañana/i', $text)) {
-            $result['date'] = (new \DateTime('tomorrow'))->format('Y-m-d');
-        } elseif (preg_match('/hoy/i', $text)) {
-            $result['date'] = (new \DateTime('today'))->format('Y-m-d');
-        } elseif (preg_match('/pasado mañana/i', $text)) {
-            $result['date'] = (new \DateTime('+2 days'))->format('Y-m-d');
+    }
+
+    public function getNextEvent()
+    {
+        try {
+            $events = $this->listUpcomingEvents(1);
+            return !empty($events['items']) ? $events['items'][0] : null;
+        } catch (\Exception $e) {
+            $this->logger->error('Error getting next event: ' . $e->getMessage());
+            throw $e;
         }
-        
-        // Extract time (HH:MM or Xpm/Xam)
-        if (preg_match('/(\d{1,2}):(\d{2})/', $text, $matches)) {
-            $result['time'] = sprintf('%02d:%02d', $matches[1], $matches[2]);
-        } elseif (preg_match('/(\d{1,2})\s*(pm|am)/i', $text, $matches)) {
-            $hour = intval($matches[1]);
-            if (strtolower($matches[2]) === 'pm' && $hour < 12) {
-                $hour += 12;
-            } elseif (strtolower($matches[2]) === 'am' && $hour === 12) {
-                $hour = 0;
+    }
+
+    public function getTodayEvents()
+    {
+        $today = (new \DateTime('now', new \DateTimeZone($this->timezone)))->format('Y-m-d');
+        return $this->getEventsByDateRange($today, $today);
+    }
+
+    public function getEventsForDay($date)
+    {
+        return $this->getEventsByDateRange($date, $date);
+    }
+
+    public function countEventsForDay($date)
+    {
+        try {
+            $events = $this->getEventsForDay($date);
+            return count($events['items'] ?? []);
+        } catch (\Exception $e) {
+            $this->logger->error('Error counting events: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    public function validateBusinessHours($date, $time, $businessHours)
+    {
+        try {
+            $datetime = new \DateTime($date . ' ' . $time, new \DateTimeZone($this->timezone));
+            $dayOfWeek = strtolower($datetime->format('l'));
+            
+            $dayMap = [
+                'monday' => 'monday',
+                'tuesday' => 'tuesday',
+                'wednesday' => 'wednesday',
+                'thursday' => 'thursday',
+                'friday' => 'friday',
+                'saturday' => 'saturday',
+                'sunday' => 'sunday'
+            ];
+            
+            $day = $dayMap[$dayOfWeek] ?? null;
+            
+            if (!$day || !isset($businessHours[$day]) || $businessHours[$day] === null) {
+                return [
+                    'valid' => false,
+                    'reason' => 'No atendemos ese día'
+                ];
             }
-            $result['time'] = sprintf('%02d:00', $hour);
-        }
-        
-        // Extract duration
-        if (preg_match('/(\d+)\s*hora/i', $text, $matches)) {
-            $result['duration'] = intval($matches[1]);
-        }
-        
-        // Extract title
-        // Try to find explicit title after keywords
-        $titlePattern = '/(?:agendar|crear evento|programar|apartar|reservar)[\s:]+([^-\d]+?)(?:\s+para\s+|\s+el\s+|\s+mañana|\s+hoy|\s+a\s+las\s+|\s+\d)/i';
-        if (preg_match($titlePattern, $text, $matches)) {
-            $result['title'] = trim($matches[1]);
-        } else {
-            // Fallback: take content between keyword and date/time
-            $parts = preg_split('/[-–]/', $text);
-            if (count($parts) > 0) {
-                $result['title'] = trim(preg_replace('/(?:agendar|crear evento|programar|apartar|reservar)[\s:]*/i', '', $parts[0]));
+            
+            $hours = $businessHours[$day];
+            $startTime = $hours['start'];
+            $endTime = $hours['end'];
+            
+            $requestedTime = $datetime->format('H:i');
+            
+            if ($requestedTime < $startTime || $requestedTime >= $endTime) {
+                return [
+                    'valid' => false,
+                    'reason' => "Horario fuera de atención. Atendemos de {$startTime} a {$endTime}"
+                ];
             }
+            
+            return ['valid' => true];
+        } catch (\Exception $e) {
+            $this->logger->error('Error validating business hours: ' . $e->getMessage());
+            return ['valid' => false, 'reason' => 'Error al validar horario'];
         }
-        
-        // If still no title or title is too generic, create default
-        if (empty($result['title']) || preg_match('/^\s*(cita|evento|reunión)\s*$/i', $result['title'])) {
-            $result['title'] = 'Cita agendada desde WhatsApp';
-        }
-        
-        // Clean up title
-        $result['title'] = trim(preg_replace('/\s+(para|el|a las)\s*$/i', '', $result['title']));
-        
-        return $result;
     }
 
     public function formatEventsForWhatsApp($events)

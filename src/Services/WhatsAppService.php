@@ -81,14 +81,12 @@ class WhatsAppService
     public function downloadMedia($mediaId)
     {
         try {
-            // Get media URL
             $mediaUrl = $this->getMediaUrl($mediaId);
 
             if (!$mediaUrl) {
                 throw new \Exception('Media URL not found');
             }
 
-            // Download media file
             $fileResponse = $this->client->get($mediaUrl, [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->accessToken
@@ -158,7 +156,6 @@ class WhatsAppService
             'type' => $messageType
         ];
 
-        // Handle different message types
         if ($messageType === 'text') {
             $data['text'] = $message['text']['body'] ?? '';
         } elseif ($messageType === 'audio') {

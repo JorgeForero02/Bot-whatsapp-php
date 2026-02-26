@@ -193,7 +193,6 @@ function renderConversationsList(conversations) {
         
         const existingItem = existingMap.get(conv.id);
         
-        // Verificar si necesita actualización
         const needsUpdate = !existingItem || 
             existingItem.dataset.lastUpdate !== conv.last_message_at ||
             existingItem.dataset.status !== conv.status ||
@@ -236,7 +235,6 @@ function renderConversationsList(conversations) {
         }
     });
     
-    // Solo actualizar si hay cambios
     if (fragment.children.length > 0 || existingMap.size > 0) {
         container.innerHTML = '';
         container.appendChild(fragment);
