@@ -451,32 +451,81 @@ try {
                     
                     if (preg_match('/mañana/i', $messageLower)) {
                         $tomorrow = (new \DateTime('tomorrow', $timezone))->format('Y-m-d');
-                        $events = $calendar->getEventsForDay($tomorrow);
+                        $allEvents = $calendar->getEventsForDay($tomorrow);
+                        $contactName = $messageData['contact_name'];
+                        $filteredItems = [];
+                        
+                        if (!empty($allEvents['items'])) {
+                            foreach ($allEvents['items'] as $event) {
+                                $summary = $event['summary'] ?? '';
+                                if (stripos($summary, $contactName) !== false) {
+                                    $filteredItems[] = $event;
+                                }
+                            }
+                        }
+                        
+                        $events = ['items' => $filteredItems];
                         $response = "Citas para mañana:\n\n";
                     } elseif (preg_match('/hoy/i', $messageLower)) {
-                        $events = $calendar->getTodayEvents();
+                        $allEvents = $calendar->getTodayEvents();
+                        $contactName = $messageData['contact_name'];
+                        $filteredItems = [];
+                        
+                        if (!empty($allEvents['items'])) {
+                            foreach ($allEvents['items'] as $event) {
+                                $summary = $event['summary'] ?? '';
+                                if (stripos($summary, $contactName) !== false) {
+                                    $filteredItems[] = $event;
+                                }
+                            }
+                        }
+                        
+                        $events = ['items' => $filteredItems];
                         $response = "Citas para hoy:\n\n";
                     } elseif (preg_match('/próxima|siguiente/i', $messageLower)) {
-                        $nextEvent = $calendar->getNextEvent();
+                        $allEvents = $calendar->listUpcomingEvents(50);
+                        $contactName = $messageData['contact_name'];
+                        $nextEvent = null;
+                        
+                        if (!empty($allEvents['items'])) {
+                            foreach ($allEvents['items'] as $event) {
+                                $summary = $event['summary'] ?? '';
+                                if (stripos($summary, $contactName) !== false) {
+                                    $nextEvent = $event;
+                                    break;
+                                }
+                            }
+                        }
+                        
                         if ($nextEvent) {
                             $start = new \DateTime($nextEvent['start']['dateTime'] ?? $nextEvent['start']['date']);
                             $response = "Tu próxima cita es:\n\n";
-                            $response .= "*" . ($nextEvent['summary'] ?? 'Sin título') . "*\n";
                             $response .= "📆 " . $start->format('d/m/Y H:i') . "\n";
-                            if (isset($nextEvent['description'])) {
-                                $response .= "📝 " . $nextEvent['description'];
-                            }
                         } else {
                             $response = "No tienes próximas citas agendadas.";
                         }
                         $events = null;
                     } else {
-                        $events = $calendar->listUpcomingEvents(5);
+                        $allEvents = $calendar->listUpcomingEvents(50);
+                        $contactName = $messageData['contact_name'];
+                        $filteredItems = [];
+                        
+                        if (!empty($allEvents['items'])) {
+                            foreach ($allEvents['items'] as $event) {
+                                $summary = $event['summary'] ?? '';
+                                if (stripos($summary, $contactName) !== false) {
+                                    $filteredItems[] = $event;
+                                    if (count($filteredItems) >= 5) break;
+                                }
+                            }
+                        }
+                        
+                        $events = ['items' => $filteredItems];
                         $response = "📅 ";
                     }
                     
                     if ($events !== null) {
-                        $response .= $calendar->formatEventsForWhatsApp($events);
+                        $response .= $calendar->formatEventsForWhatsApp($events['items'] ?? []);
                     }
                 } elseif ($calendarAction === 'availability') {
                     $timezone = new \DateTimeZone($calendarConfig['timezone']);

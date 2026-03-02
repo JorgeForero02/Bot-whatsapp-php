@@ -100,7 +100,6 @@ class GoogleCalendarService
             return $this->makeRequest('get', "calendars/{$this->calendarId}/events", [
                 'query' => [
                     'maxResults' => $maxResults,
-                    'orderBy' => 'startTime',
                     'timeMin' => date('c')
                 ]
             ]);
@@ -248,8 +247,7 @@ class GoogleCalendarService
                 'query' => [
                     'timeMin' => $timeMin,
                     'timeMax' => $timeMax,
-                    'maxResults' => $maxResults,
-                    'orderBy' => 'startTime'
+                    'maxResults' => $maxResults
                 ]
             ]);
         } catch (\Exception $e) {
