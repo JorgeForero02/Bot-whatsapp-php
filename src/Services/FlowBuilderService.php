@@ -62,6 +62,7 @@ class FlowBuilderService
             'is_root'           => (int)($data['is_root'] ?? false),
             'requires_calendar' => (int)($data['requires_calendar'] ?? false),
             'match_any_input'   => (int)($data['match_any_input'] ?? false),
+            'is_farewell'       => (int)($data['is_farewell'] ?? false),
             'position_order'    => (int)($data['position_order'] ?? 0),
             'is_active'         => (int)($data['is_active'] ?? true),
         ];
@@ -133,14 +134,6 @@ class FlowBuilderService
             if ($nodeRow && $nodeRow['next_node_id']) {
                 $stack[] = (int)$nodeRow['next_node_id'];
             }
-
-            $optRows = $this->db->fetchAll(
-                "SELECT next_node_id FROM flow_options WHERE node_id = :id AND next_node_id IS NOT NULL",
-                [':id' => $current]
-            );
-            foreach ($optRows ?? [] as $opt) {
-                $stack[] = (int)$opt['next_node_id'];
-            }
         }
 
         return false;
@@ -180,6 +173,7 @@ class FlowBuilderService
                     'is_root'           => (int)($node['is_root'] ?? false),
                     'requires_calendar' => (int)($node['requires_calendar'] ?? false),
                     'match_any_input'   => (int)($node['match_any_input'] ?? false),
+                    'is_farewell'       => (int)($node['is_farewell'] ?? false),
                     'position_order'    => (int)($node['position_order'] ?? 0),
                     'is_active'         => (int)($node['is_active'] ?? true),
                 ]);

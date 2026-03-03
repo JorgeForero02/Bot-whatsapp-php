@@ -131,6 +131,7 @@ CREATE TABLE IF NOT EXISTS flow_nodes (
     is_root BOOLEAN DEFAULT FALSE,
     requires_calendar BOOLEAN DEFAULT FALSE,
     match_any_input TINYINT(1) NOT NULL DEFAULT 0,
+    is_farewell TINYINT(1) NOT NULL DEFAULT 0,
     position_order INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -139,7 +140,8 @@ CREATE TABLE IF NOT EXISTS flow_nodes (
     INDEX idx_is_root (is_root),
     INDEX idx_is_active (is_active),
     INDEX idx_position (position_order),
-    INDEX idx_match_any (match_any_input)
+    INDEX idx_match_any (match_any_input),
+    INDEX idx_is_farewell (is_farewell)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS flow_options (

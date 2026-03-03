@@ -117,6 +117,11 @@ class ClassicBotService
             ];
         }
 
+        if (!empty($node['is_farewell'])) {
+            $this->clearSession($userPhone);
+            return ['type' => 'farewell', 'response' => $node['message_text']];
+        }
+
         $this->saveSession($userPhone, $nodeId);
         return ['type' => 'response', 'response' => $node['message_text']];
     }

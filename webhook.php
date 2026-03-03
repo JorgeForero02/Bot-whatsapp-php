@@ -402,7 +402,7 @@ try {
                 $classicBot    = new ClassicBotService($db, $logger);
                 $classicResult = $classicBot->processMessage($messageData['text'], $messageData['from']);
 
-                if ($classicResult['type'] === 'response' || $classicResult['type'] === 'fallback') {
+                if ($classicResult['type'] === 'response' || $classicResult['type'] === 'fallback' || $classicResult['type'] === 'farewell') {
                     $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
                     $conversationService->addMessage(
                         $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
