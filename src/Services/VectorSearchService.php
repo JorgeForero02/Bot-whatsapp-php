@@ -16,12 +16,15 @@ class VectorSearchService
         $this->similarityMethod = $similarityMethod;
     }
 
-    public function searchSimilar(array $queryEmbedding, $topK = 5, $threshold = 0.0)
+    public function searchSimilar(array $queryEmbedding, $topK = 5, $threshold = 0.0, $maxCandidates = 200)
     {
-        $sql = 'SELECT v.id, v.document_id, v.chunk_text, v.chunk_index, v.embedding, d.filename, d.original_name 
+        $maxCandidates = intval($maxCandidates);
+        $sql = "SELECT v.id, v.document_id, v.chunk_text, v.chunk_index, v.embedding, d.filename, d.original_name 
                 FROM vectors v 
                 INNER JOIN documents d ON v.document_id = d.id 
-                ORDER BY v.id';
+                WHERE d.is_active = 1
+                ORDER BY RAND()
+                LIMIT {$maxCandidates}";
         
         $vectors = $this->db->fetchAll($sql);
         

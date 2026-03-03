@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Core\Database;
+use App\Core\Logger;
 
 class CalendarConfigHelper
 {
@@ -34,6 +35,22 @@ class CalendarConfigHelper
                         $defaults['min_advance_hours'] = (int)$value;
                         break;
                     
+                    case 'reminder_email_enabled':
+                        $defaults['reminders']['email']['enabled'] = ($value === '1' || $value === 'true');
+                        break;
+                    
+                    case 'reminder_email_minutes':
+                        $defaults['reminders']['email']['minutes_before'] = (int)$value;
+                        break;
+                    
+                    case 'reminder_popup_enabled':
+                        $defaults['reminders']['popup']['enabled'] = ($value === '1' || $value === 'true');
+                        break;
+                    
+                    case 'reminder_popup_minutes':
+                        $defaults['reminders']['popup']['minutes_before'] = (int)$value;
+                        break;
+                    
                     default:
                         if (preg_match('/^business_hours_(\w+)$/', $key, $matches)) {
                             $day = $matches[1];
@@ -48,6 +65,10 @@ class CalendarConfigHelper
                 }
             }
         } catch (\Exception $e) {
+            $logger = new Logger(__DIR__ . '/../../logs');
+            $logger->error('CalendarConfigHelper: Failed to load settings from database', [
+                'error' => $e->getMessage()
+            ]);
         }
         
         return $defaults;

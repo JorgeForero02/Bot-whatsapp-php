@@ -6,17 +6,36 @@ use App\Core\Config;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Services\OpenAIService;
+use App\Services\EncryptionService;
+use App\Services\CredentialService;
+use App\Utils\VectorMath;
 
 $config = Config::load(__DIR__ . '/../config/config.php');
 $logger = new Logger(__DIR__ . '/../logs');
 $db = Database::getInstance(Config::get('database'));
 
-$openai = new OpenAIService(
-    Config::get('openai.api_key'),
-    Config::get('openai.model'),
-    Config::get('openai.embedding_model'),
-    $logger
-);
+try {
+    $encryption = new EncryptionService();
+    $credentialService = new CredentialService($db, $encryption);
+    if ($credentialService->hasOpenAICredentials()) {
+        $oaiCreds = $credentialService->getOpenAICredentials();
+        $openai = new OpenAIService(
+            $oaiCreds['api_key'],
+            $oaiCreds['model'],
+            $oaiCreds['embedding_model'],
+            $logger
+        );
+    } else {
+        throw new \Exception('No DB credentials');
+    }
+} catch (\Exception $e) {
+    $openai = new OpenAIService(
+        Config::get('openai.api_key'),
+        Config::get('openai.model'),
+        Config::get('openai.embedding_model'),
+        $logger
+    );
+}
 
 $logger->info('Embedding worker started');
 
@@ -42,12 +61,12 @@ while (true) {
                 $logger->info('Processing chunk', ['chunk_id' => $chunk['id']]);
                 
                 $embedding = $openai->createEmbedding($chunk['chunk_text']);
-                $embeddingJson = json_encode($embedding);
+                $embeddingBinary = VectorMath::serializeVector($embedding);
                 
                 $db->query(
                     'UPDATE vectors SET embedding = :embedding WHERE id = :id',
                     [
-                        ':embedding' => $embeddingJson,
+                        ':embedding' => $embeddingBinary,
                         ':id' => $chunk['id']
                     ]
                 );

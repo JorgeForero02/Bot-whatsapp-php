@@ -11,10 +11,12 @@ CREATE TABLE IF NOT EXISTS documents (
     chunk_count INT DEFAULT 0,
     file_size INT NOT NULL,
     file_hash VARCHAR(32),
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_created (created_at),
     INDEX idx_file_type (file_type),
+    INDEX idx_is_active (is_active),
     UNIQUE KEY idx_file_hash (file_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -38,9 +40,6 @@ CREATE TABLE IF NOT EXISTS conversations (
     ai_enabled BOOLEAN DEFAULT TRUE,
     last_message_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_bot_message_at TIMESTAMP NULL,
-    event_creation_state VARCHAR(50) DEFAULT NULL,
-    event_creation_attempts INT DEFAULT 0,
-    event_creation_data TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY unique_phone (phone_number),
@@ -119,3 +118,150 @@ INSERT INTO calendar_settings (setting_key, setting_value) VALUES
 ('reminder_popup_enabled', 'true'),
 ('reminder_popup_minutes', '30')
 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
+
+-- Bot mode setting
+INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
+('bot_mode', 'ai', 'text')
+ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
+
+-- Flow nodes for Classic Bot mode
+CREATE TABLE IF NOT EXISTS flow_nodes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    trigger_keywords JSON NOT NULL DEFAULT ('[]'),
+    message_text TEXT NOT NULL,
+    next_node_id INT NULL,
+    is_root BOOLEAN DEFAULT FALSE,
+    requires_calendar BOOLEAN DEFAULT FALSE,
+    position_order INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (next_node_id) REFERENCES flow_nodes(id) ON DELETE SET NULL,
+    INDEX idx_is_root (is_root),
+    INDEX idx_is_active (is_active),
+    INDEX idx_position (position_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Options for each flow node (branching)
+CREATE TABLE IF NOT EXISTS flow_options (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    node_id INT NOT NULL,
+    option_text VARCHAR(500) NOT NULL,
+    option_keywords JSON NOT NULL DEFAULT ('[]'),
+    next_node_id INT NULL,
+    position_order INT DEFAULT 0,
+    FOREIGN KEY (node_id) REFERENCES flow_nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (next_node_id) REFERENCES flow_nodes(id) ON DELETE SET NULL,
+    INDEX idx_node (node_id),
+    INDEX idx_position (position_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Session state for Classic Bot
+CREATE TABLE IF NOT EXISTS classic_flow_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_phone VARCHAR(50) NOT NULL,
+    current_node_id INT NULL,
+    attempts INT DEFAULT 0,
+    expires_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_phone (user_phone),
+    FOREIGN KEY (current_node_id) REFERENCES flow_nodes(id) ON DELETE SET NULL,
+    INDEX idx_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Onboarding wizard progress
+CREATE TABLE IF NOT EXISTS onboarding_progress (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    step_name VARCHAR(100) NOT NULL UNIQUE,
+    step_order INT NOT NULL,
+    is_completed BOOLEAN DEFAULT FALSE,
+    is_skipped BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO onboarding_progress (step_name, step_order) VALUES
+('whatsapp_credentials', 1),
+('openai_credentials',   2),
+('bot_personality',      3),
+('calendar_setup',       4),
+('flow_builder',         5),
+('test_connection',      6),
+('go_live',              7)
+ON DUPLICATE KEY UPDATE step_order = VALUES(step_order);
+
+-- Table for WhatsApp and OpenAI credentials
+CREATE TABLE IF NOT EXISTS bot_credentials (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    whatsapp_phone_number_id VARCHAR(255) DEFAULT '',
+    whatsapp_access_token TEXT DEFAULT NULL,
+    whatsapp_app_secret TEXT DEFAULT NULL,
+    whatsapp_verify_token VARCHAR(255) DEFAULT '',
+    openai_api_key TEXT DEFAULT NULL,
+    openai_model VARCHAR(100) DEFAULT 'gpt-3.5-turbo',
+    openai_embedding_model VARCHAR(100) DEFAULT 'text-embedding-ada-002',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default row so there's always a record to UPDATE
+INSERT INTO bot_credentials (id) VALUES (1)
+ON DUPLICATE KEY UPDATE id = 1;
+
+-- Table for Google OAuth credentials
+CREATE TABLE IF NOT EXISTS google_oauth_credentials (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id VARCHAR(255) DEFAULT '',
+    client_secret TEXT DEFAULT NULL,
+    access_token TEXT DEFAULT NULL,
+    refresh_token TEXT DEFAULT NULL,
+    token_expires_at TIMESTAMP NULL,
+    calendar_id VARCHAR(255) DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default row
+INSERT INTO google_oauth_credentials (id) VALUES (1)
+ON DUPLICATE KEY UPDATE id = 1;
+
+-- Additional settings from credentials migration
+INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
+('context_messages_count', '5', 'text'),
+('business_name', 'Mi Negocio', 'text'),
+('timezone', 'America/Bogota', 'text'),
+('welcome_message', 'Hola! Soy un asistente virtual. ¿En qué puedo ayudarte?', 'text'),
+('fallback_message', 'Lo siento, no encontré información relevante. Un operador humano te atenderá pronto.', 'text'),
+('calendar_enabled', 'true', 'boolean')
+ON DUPLICATE KEY UPDATE setting_key = setting_key;
+
+-- Tabla de estado del flujo de calendario
+CREATE TABLE IF NOT EXISTS calendar_flow_state (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_phone VARCHAR(50) NOT NULL,
+    conversation_id INT NOT NULL,
+    current_step VARCHAR(50) NOT NULL,
+    extracted_date VARCHAR(20) DEFAULT NULL,
+    extracted_time VARCHAR(10) DEFAULT NULL,
+    extracted_service VARCHAR(255) DEFAULT NULL,
+    event_title VARCHAR(255) DEFAULT NULL,
+    cancel_events_json TEXT DEFAULT NULL,
+    attempts INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_phone (user_phone),
+    INDEX idx_expires (expires_at),
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cache for query embeddings to avoid redundant OpenAI calls
+CREATE TABLE IF NOT EXISTS query_embedding_cache (
+    query_hash VARCHAR(32) NOT NULL PRIMARY KEY,
+    embedding MEDIUMBLOB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    hit_count INT DEFAULT 0,
+    INDEX idx_last_used (last_used_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

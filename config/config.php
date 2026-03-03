@@ -14,6 +14,7 @@ return [
         'access_token' => getenv('WHATSAPP_ACCESS_TOKEN') ?: '',
         'phone_number_id' => getenv('WHATSAPP_PHONE_NUMBER_ID') ?: '',
         'verify_token' => getenv('WHATSAPP_VERIFY_TOKEN') ?: 'your_verify_token_here',
+        'app_secret' => getenv('WHATSAPP_APP_SECRET') ?: '',
         'api_version' => 'v18.0',
         'base_url' => 'https://graph.facebook.com'
     ],

@@ -38,28 +38,6 @@ $defaults = [
             'enabled' => true,
             'minutes_before' => 30
         ]
-    ],
-    
-    'keywords' => [
-        'list' => [
-            'eventos', 'agendado', 'calendario', 'próximos eventos', 'qué tengo', 
-            'mis eventos', 'mis citas', 'tengo citas', 'citas tengo', 'agenda del día',
-            'agenda de hoy', 'agenda de mañana', 'próxima cita', 'siguiente cita',
-            'cita próxima', 'eventos de', 'citas de'
-        ],
-        'availability' => [
-            'disponible', 'disponibilidad', 'tienes tiempo', 'estás libre', 
-            'tiempo libre', 'espacios libres', 'horarios disponibles', 'puedes atender',
-            'hay espacio', 'hay disponibilidad'
-        ],
-        'create' => [
-            'agendar', 'programar', 'reservar', 'apartar', 'crear',
-            'agenda', 'agendo', 'programa', 'programo', 'reserva', 'reservo', 
-            'aparta', 'aparto', 'crear evento', 'crear cita', 'apartar cita', 
-            'agendar cita', 'hacer cita', 'poner cita', 'guardar cita', 
-            'cita para', 'evento para', 'quiero agendar', 'necesito agendar', 
-            'quisiera agendar', 'solicito cita', 'pedir cita'
-        ]
     ]
 ];
 

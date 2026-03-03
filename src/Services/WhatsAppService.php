@@ -23,7 +23,7 @@ class WhatsAppService
         $this->client = new Client([
             'base_uri' => 'https://graph.facebook.com/' . $this->apiVersion . '/',
             'timeout' => 30,
-            'verify' => false
+            'verify' => false // Deshabilitado para desarrollo local
         ]);
     }
 

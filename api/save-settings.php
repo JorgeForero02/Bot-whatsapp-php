@@ -3,17 +3,7 @@
 if (ob_get_level()) ob_end_clean();
 ob_start();
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
-use App\Core\Config;
-use App\Core\Database;
-use App\Core\Logger;
-
-$config = Config::load(__DIR__ . '/../config/config.php');
-$db = Database::getInstance(Config::get('database'));
-$logger = new Logger(__DIR__ . '/../logs');
-
-header('Content-Type: application/json');
+require_once __DIR__ . '/bootstrap.php';
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -37,7 +27,9 @@ try {
         'openaiModel' => 'openai_model',
         'temperature' => 'temperature',
         'timeout' => 'timeout',
-        'contextMessagesCount' => 'context_messages_count'
+        'contextMessagesCount' => 'context_messages_count',
+        'calendarEnabled' => 'calendar_enabled',
+        'botMode' => 'bot_mode'
     ];
 
     foreach ($settingsMap as $jsonKey => $dbKey) {
@@ -71,6 +63,6 @@ try {
     ob_clean();
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'Error al guardar configuración'
     ]);
 }

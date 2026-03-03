@@ -5,231 +5,207 @@ $currentPage = 'settings';
 ob_start();
 ?>
 
-<div class="mb-6">
-    <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Configuración del Bot</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-400">Personaliza el comportamiento y parámetros del bot de WhatsApp</p>
+<div class="page-header">
+    <h1 class="page-title">Configuración del Bot</h1>
+    <p class="page-subtitle">Personaliza el comportamiento y parámetros del bot de WhatsApp</p>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="lg:col-span-2 space-y-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <svg class="w-6 h-6 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Configuración RAG
-            </h2>
+<div class="settings-grid">
+    <div class="settings-main">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Configuración RAG</span>
+          </div>
+          <div class="card-body">
             
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Umbral de Confianza Mínimo
-                    </label>
-                    <input type="range" id="confidence-threshold" min="0" max="1" step="0.05" value="0.7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <div class="form-stack">
+                <div class="form-group">
+                    <label class="form-label">Umbral de Confianza Mínimo</label>
+                    <input type="range" id="confidence-threshold" min="0" max="1" step="0.05" value="0.7" class="range-input">
+                    <div class="range-labels">
                         <span>0%</span>
-                        <span id="confidence-value" class="font-semibold text-primary">70%</span>
+                        <span id="confidence-value" class="range-value">70%</span>
                         <span>100%</span>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Define el nivel mínimo de confianza para que el bot responda automáticamente. Si la respuesta tiene menos confianza, se marcará como "Pendiente de revisión humana".
-                    </p>
+                    <p class="form-hint">Define el nivel mínimo de confianza para que el bot responda automáticamente.</p>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Número Máximo de Resultados de Búsqueda
-                    </label>
-                    <select id="max-results" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <div class="form-group">
+                    <label class="form-label">Número Máximo de Resultados de Búsqueda</label>
+                    <select id="max-results" class="form-select">
                         <option value="3">3 resultados</option>
                         <option value="5" selected>5 resultados</option>
                         <option value="7">7 resultados</option>
                         <option value="10">10 resultados</option>
                     </select>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Cantidad de fragmentos de documentos que se recuperarán de la base de conocimiento para generar la respuesta. Más resultados = respuestas más completas pero más lentas.
-                    </p>
+                    <p class="form-hint">Cantidad de fragmentos recuperados de la base de conocimiento.</p>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Tamaño de Chunk (Fragmentos de Texto)
-                    </label>
-                    <select id="chunk-size" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                        <option value="500">500 caracteres</option>
-                        <option value="1000" selected>1000 caracteres</option>
-                        <option value="1500">1500 caracteres</option>
-                        <option value="2000">2000 caracteres</option>
+                <div class="form-group">
+                    <label class="form-label">Tamaño de Chunk (Fragmentos de Texto)</label>
+                    <select id="chunk-size" class="form-select">
+                        <option value="500">500 palabras</option>
+                        <option value="1000" selected>1000 palabras</option>
+                        <option value="1500">1500 palabras</option>
+                        <option value="2000">2000 palabras</option>
                     </select>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Tamaño de los fragmentos en los que se dividen los documentos. Chunks más pequeños son más precisos, chunks más grandes dan más contexto.
-                    </p>
+                    <p class="form-hint">Tamaño de los fragmentos de documentos. Chunks pequeños son más precisos, grandes dan más contexto.</p>
                 </div>
             </div>
+          </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <svg class="w-6 h-6 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                </svg>
-                Prompt del Sistema
-            </h2>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Instrucciones del Sistema para el Bot
-                    </label>
-                    <textarea id="system-prompt" rows="6" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm" placeholder="Eres un asistente virtual..."></textarea>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Este es el prompt del sistema que define cómo se comporta el bot. Define su personalidad, tono y forma de responder. Los cambios se aplican inmediatamente a todas las nuevas respuestas.
-                    </p>
-                </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Prompt del Sistema</span></div>
+          <div class="card-body">
+            <div class="form-group">
+                <label class="form-label">Instrucciones del Sistema para el Bot</label>
+                <textarea id="system-prompt" rows="6" class="form-textarea" style="font-family:monospace;" placeholder="Eres un asistente virtual..."></textarea>
+                <p class="form-hint">Define la personalidad, tono y forma de responder del bot. Los cambios aplican inmediatamente.</p>
             </div>
+          </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <svg class="w-6 h-6 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
-                </svg>
-                Respuestas Automáticas
-            </h2>
-            
-            <div class="space-y-4">
-                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                    <div class="flex-1">
-                        <h3 class="font-medium text-gray-900 dark:text-gray-100">Activar Respuestas Automáticas</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Permite que el bot responda automáticamente a los mensajes cuando la confianza supere el umbral configurado.
-                        </p>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Respuestas Automáticas</span></div>
+          <div class="card-body">
+            <div class="form-stack">
+                <div class="toggle-row">
+                    <div>
+                        <p class="form-label" style="margin-bottom:0.125rem;">Activar Respuestas Automáticas</p>
+                        <p class="form-hint" style="margin-top:0;">El bot responde automáticamente cuando la confianza supera el umbral.</p>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer ml-4">
-                        <input type="checkbox" id="auto-reply" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                    <label class="toggle">
+                        <input type="checkbox" id="auto-reply" checked>
+                        <span class="toggle-thumb"></span>
                     </label>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Mensaje de Bienvenida
-                    </label>
-                    <textarea id="welcome-message" rows="3" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="Hola, soy el asistente virtual. ¿En qué puedo ayudarte?"></textarea>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Mensaje que se envía automáticamente cuando un usuario inicia una nueva conversación.
-                    </p>
+                <div class="form-group">
+                    <label class="form-label" for="welcome-message">Mensaje de Bienvenida</label>
+                    <textarea id="welcome-message" rows="3" class="form-textarea" placeholder="Hola, soy el asistente virtual. ¿En qué puedo ayudarte?"></textarea>
+                    <p class="form-hint">Se envía cuando un usuario inicia una nueva conversación.</p>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Mensaje de Error (Baja Confianza)
-                    </label>
-                    <textarea id="error-message" rows="3" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="Lo siento, no tengo suficiente información para responder. Un agente te atenderá pronto."></textarea>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Mensaje que se envía cuando el bot no puede responder con suficiente confianza.
-                    </p>
+                <div class="form-group">
+                    <label class="form-label" for="error-message">Mensaje de Error (Baja Confianza)</label>
+                    <textarea id="error-message" rows="3" class="form-textarea" placeholder="Lo siento, no tengo suficiente información. Un agente te atenderá pronto."></textarea>
+                    <p class="form-hint">Se envía cuando el bot no puede responder con suficiente confianza.</p>
                 </div>
             </div>
+          </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <svg class="w-6 h-6 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-                Configuración Avanzada
-            </h2>
-            
-            <div class="space-y-4">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Módulo de Calendario</span></div>
+          <div class="card-body">
+            <div class="toggle-row">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Modelo de OpenAI
-                    </label>
-                    <select id="openai-model" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <p class="form-label" style="margin-bottom:0.125rem;">Activar Google Calendar</p>
+                    <p class="form-hint" style="margin-top:0;">Los usuarios pueden agendar, listar y consultar disponibilidad desde WhatsApp.</p>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="calendar-enabled" checked>
+                    <span class="toggle-thumb"></span>
+                </label>
+            </div>
+            <div id="calendar-status-info" style="margin-top:0.75rem;font-size:0.8125rem;"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Modo de Operación del Bot</span></div>
+          <div class="card-body">
+            <div class="bot-mode-grid">
+                <label class="bot-mode-option">
+                    <input type="radio" name="bot-mode" id="bot-mode-ai" value="ai" class="sr-only">
+                    <div class="bot-mode-card">
+                        <div>
+                            <p class="form-label" style="margin-bottom:0.125rem;">Modo IA</p>
+                            <p class="form-hint" style="margin-top:0;">OpenAI + RAG + Calendar. Respuestas inteligentes.</p>
+                        </div>
+                    </div>
+                </label>
+                <label class="bot-mode-option">
+                    <input type="radio" name="bot-mode" id="bot-mode-classic" value="classic" class="sr-only">
+                    <div class="bot-mode-card">
+                        <div>
+                            <p class="form-label" style="margin-bottom:0.125rem;">Modo Clásico</p>
+                            <p class="form-hint" style="margin-top:0;">Flujos por palabras clave. Sin OpenAI.</p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+            <div id="classic-mode-link" class="hidden" style="margin-top:0.75rem;">
+                <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/flow-builder"
+                   style="display:inline-flex;align-items:center;gap:0.375rem;font-size:0.875rem;color:var(--color-secondary);text-decoration:none;font-weight:500;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    Ir al Constructor de Flujos
+                </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Configuración Avanzada</span></div>
+          <div class="card-body">
+            <div class="form-stack">
+                <div class="form-group">
+                    <label class="form-label" for="openai-model">Modelo de OpenAI</label>
+                    <select id="openai-model" class="form-select">
                         <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Rápido y económico)</option>
                         <option value="gpt-4" selected>GPT-4 (Más preciso)</option>
                         <option value="gpt-4-turbo">GPT-4 Turbo (Equilibrado)</option>
                     </select>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Modelo de IA usado para generar respuestas. GPT-4 es más preciso pero más costoso.
-                    </p>
+                    <p class="form-hint">Modelo de IA usado para generar respuestas.</p>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Temperatura de Respuesta
-                    </label>
-                    <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <div class="form-group">
+                    <label class="form-label">Temperatura de Respuesta</label>
+                    <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7" class="range-input">
+                    <div class="range-labels">
                         <span>Precisa</span>
-                        <span id="temperature-value" class="font-semibold text-primary">0.7</span>
+                        <span id="temperature-value" class="range-value">0.7</span>
                         <span>Creativa</span>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Controla la creatividad de las respuestas. 0 = Muy precisa y consistente, 1 = Más creativa y variada.
-                    </p>
+                    <p class="form-hint">Controla la creatividad. 0 = muy precisa, 1 = más creativa.</p>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Timeout de Respuesta (segundos)
-                    </label>
-                    <input type="number" id="timeout" min="5" max="60" value="30" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Tiempo máximo de espera para obtener una respuesta de OpenAI antes de dar timeout.
-                    </p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Mensajes de Contexto
-                    </label>
-                    <input type="number" id="context-messages-count" min="0" max="20" value="5" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Cantidad de mensajes anteriores de la conversación que el bot verá como contexto. 0 para desactivar.
-                    </p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="timeout">Timeout (segundos)</label>
+                        <input type="number" id="timeout" min="5" max="60" value="30" class="form-input">
+                        <p class="form-hint">Tiempo máximo de espera para OpenAI.</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="context-messages-count">Mensajes de Contexto</label>
+                        <input type="number" id="context-messages-count" min="0" max="20" value="5" class="form-input">
+                        <p class="form-hint">Mensajes anteriores visibles al bot. 0 desactiva.</p>
+                    </div>
                 </div>
             </div>
+          </div>
         </div>
 
-        <div class="flex justify-end space-x-3">
-            <button onclick="resetSettings()" class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-                Restablecer
-            </button>
-            <button onclick="saveSettings()" class="px-6 py-3 bg-primary hover:bg-secondary text-white rounded-lg font-medium transition-all flex items-center space-x-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                <span>Guardar Configuración</span>
+        <div style="display:flex;justify-content:flex-end;gap:0.75rem;flex-wrap:wrap;">
+            <button onclick="resetSettings()" class="btn btn-secondary btn-md">Restablecer</button>
+            <button onclick="saveSettings()" class="btn btn-primary btn-md">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Guardar Configuración
             </button>
         </div>
     </div>
 
-    <div class="lg:col-span-1">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-6">
-            <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">Información</h3>
-            <div class="space-y-4 text-sm text-gray-600 dark:text-gray-400">
-                <div class="flex items-start space-x-2">
-                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <p>Los cambios en la configuración se aplicarán inmediatamente a todas las nuevas conversaciones.</p>
-                </div>
-                <div class="flex items-start space-x-2">
-                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                    </svg>
-                    <p>Un umbral de confianza muy bajo puede causar respuestas incorrectas, mientras que uno muy alto puede requerir más intervención humana.</p>
-                </div>
-                <div class="flex items-start space-x-2">
-                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
-                    <p>La configuración se guarda localmente y persistirá entre sesiones.</p>
-                </div>
+    <div class="settings-sidebar">
+        <div class="card" style="position:sticky;top:calc(var(--topbar-height) + 1rem);">
+          <div class="card-header"><span class="card-title">Información</span></div>
+          <div class="card-body">
+            <div class="form-stack">
+                <p class="form-hint">Los cambios se aplican inmediatamente a todas las nuevas conversaciones.</p>
+                <p class="form-hint">Un umbral de confianza muy bajo puede causar respuestas incorrectas.</p>
+                <p class="form-hint">La configuración se guarda en la base de datos.</p>
             </div>
+          </div>
         </div>
     </div>
 </div>
@@ -237,144 +213,8 @@ ob_start();
 <?php
 $content = ob_get_clean();
 
-ob_start();
-?>
-
-const confidenceSlider = document.getElementById('confidence-threshold');
-const confidenceValue = document.getElementById('confidence-value');
-const temperatureSlider = document.getElementById('temperature');
-const temperatureValue = document.getElementById('temperature-value');
-
-confidenceSlider?.addEventListener('input', function() {
-    const value = Math.round(this.value * 100);
-    confidenceValue.textContent = value + '%';
-});
-
-temperatureSlider?.addEventListener('input', function() {
-    temperatureValue.textContent = this.value;
-});
-
-async function loadSettings() {
-    try {
-        const response = await fetch(BASE_PATH + '/api/settings');
-        const data = await response.json();
-        
-        if (data.success && data.settings) {
-            const s = data.settings;
-            
-            if (s.systemPrompt) document.getElementById('system-prompt').value = s.systemPrompt;
-            if (s.welcomeMessage) document.getElementById('welcome-message').value = s.welcomeMessage;
-            if (s.errorMessage) document.getElementById('error-message').value = s.errorMessage;
-            if (s.confidenceThreshold !== undefined) confidenceSlider.value = s.confidenceThreshold;
-            if (s.maxResults) document.getElementById('max-results').value = s.maxResults;
-            if (s.chunkSize) document.getElementById('chunk-size').value = s.chunkSize;
-            if (s.autoReply !== undefined) document.getElementById('auto-reply').checked = s.autoReply;
-            if (s.openaiModel) document.getElementById('openai-model').value = s.openaiModel;
-            if (s.temperature !== undefined) temperatureSlider.value = s.temperature;
-            if (s.timeout) document.getElementById('timeout').value = s.timeout;
-            if (s.contextMessagesCount !== undefined) document.getElementById('context-messages-count').value = s.contextMessagesCount;
-            
-            confidenceSlider.dispatchEvent(new Event('input'));
-            temperatureSlider.dispatchEvent(new Event('input'));
-        }
-    } catch (error) {
-        console.error('Error loading settings:', error);
-    }
-}
-
-async function saveSettings() {
-    const settings = {
-        confidenceThreshold: parseFloat(confidenceSlider.value),
-        maxResults: parseInt(document.getElementById('max-results').value),
-        chunkSize: parseInt(document.getElementById('chunk-size').value),
-        systemPrompt: document.getElementById('system-prompt').value,
-        autoReply: document.getElementById('auto-reply').checked,
-        welcomeMessage: document.getElementById('welcome-message').value,
-        errorMessage: document.getElementById('error-message').value,
-        openaiModel: document.getElementById('openai-model').value,
-        temperature: parseFloat(temperatureSlider.value),
-        timeout: parseInt(document.getElementById('timeout').value),
-        contextMessagesCount: parseInt(document.getElementById('context-messages-count').value)
-    };
-    
-    try {
-        const response = await fetch(BASE_PATH + '/api/settings', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(settings)
-        });
-        
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Error al guardar');
-        }
-    } catch (error) {
-        console.error('Error saving settings:', error);
-        alert('Error al guardar la configuración en la base de datos: ' + error.message);
-        return;
-    }
-    
-    const notification = document.createElement('div');
-    notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
-    notification.innerHTML = `
-        <div class="flex items-center space-x-2">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            <span>Configuración guardada correctamente</span>
-        </div>
-    `;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-async function resetSettings() {
-    if (!confirm('¿Estás seguro de que quieres restablecer la configuración a los valores por defecto?')) {
-        return;
-    }
-    
-    confidenceSlider.value = 0.7;
-    document.getElementById('max-results').value = '5';
-    document.getElementById('chunk-size').value = '1000';
-    document.getElementById('system-prompt').value = '';
-    document.getElementById('auto-reply').checked = true;
-    document.getElementById('welcome-message').value = '';
-    document.getElementById('error-message').value = '';
-    document.getElementById('openai-model').value = 'gpt-4';
-    temperatureSlider.value = 0.7;
-    document.getElementById('timeout').value = '30';
-    document.getElementById('context-messages-count').value = '5';
-    
-    confidenceSlider.dispatchEvent(new Event('input'));
-    temperatureSlider.dispatchEvent(new Event('input'));
-    
-    await saveSettings();
-    
-    const notification = document.createElement('div');
-    notification.className = 'fixed top-20 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-    notification.innerHTML = `
-        <div class="flex items-center space-x-2">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            <span>Configuración restablecida</span>
-        </div>
-    `;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-loadSettings();
-
-<?php
-$scripts = ob_get_clean();
+$scripts = '';
+$extraScripts = '<script src="' . (defined('BASE_PATH') ? BASE_PATH : '') . '/assets/js/settings.js"></script>';
 
 require __DIR__ . '/layout.php';
 ?>

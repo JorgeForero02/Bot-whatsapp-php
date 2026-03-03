@@ -3,16 +3,9 @@
 if (ob_get_level()) ob_end_clean();
 ob_start();
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
-use App\Core\Database;
-use App\Core\Config;
-
-header('Content-Type: application/json');
+require_once __DIR__ . '/bootstrap.php';
 
 try {
-    $config = Config::load(__DIR__ . '/../config/config.php');
-    $db = Database::getInstance(Config::get('database'));
     
     $settings = $db->fetchAll(
         "SELECT setting_key, setting_value FROM calendar_settings",
@@ -74,5 +67,5 @@ try {
 } catch (\Exception $e) {
     http_response_code(500);
     ob_clean();
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['error' => 'Error al obtener configuración del calendario']);
 }

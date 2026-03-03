@@ -65,24 +65,26 @@ class ConversationService
 
     public function getConversationHistory($conversationId, $limit = 50)
     {
+        $limit = (int) $limit;
         return $this->db->fetchAll(
-            'SELECT * FROM messages WHERE conversation_id = :id ORDER BY created_at DESC LIMIT :limit',
-            [':id' => $conversationId, ':limit' => $limit]
+            "SELECT * FROM messages WHERE conversation_id = :id ORDER BY created_at DESC LIMIT {$limit}",
+            [':id' => $conversationId]
         );
     }
 
     public function getAllConversations($status = null, $limit = 100)
     {
+        $limit = (int) $limit;
         if ($status) {
             return $this->db->fetchAll(
-                'SELECT * FROM conversations WHERE status = :status ORDER BY last_message_at DESC LIMIT :limit',
-                [':status' => $status, ':limit' => $limit]
+                "SELECT * FROM conversations WHERE status = :status ORDER BY last_message_at DESC LIMIT {$limit}",
+                [':status' => $status]
             );
         }
 
         return $this->db->fetchAll(
-            'SELECT * FROM conversations ORDER BY last_message_at DESC LIMIT :limit',
-            [':limit' => $limit]
+            "SELECT * FROM conversations ORDER BY last_message_at DESC LIMIT {$limit}",
+            []
         );
     }
 

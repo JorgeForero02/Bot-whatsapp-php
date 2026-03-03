@@ -5,200 +5,152 @@ $currentPage = 'dashboard';
 ob_start();
 ?>
 
-<div class="mb-6">
-    <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-400">Vista general del sistema y estadísticas en tiempo real</p>
+<!-- Onboarding banner -->
+<div id="onboarding-banner" style="display:none;margin-bottom:1.25rem;"></div>
+
+<!-- Page header -->
+<div class="page-header">
+  <h1 class="page-title">Dashboard</h1>
+  <p class="page-subtitle">Vista general del sistema y estadísticas en tiempo real</p>
 </div>
 
-<div id="stats-container" class="text-center py-12">
-    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-    <p class="mt-4 text-gray-600 dark:text-gray-400">Cargando estadísticas...</p>
+<!-- ── Stat Cards row ── -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;">
+  <div class="stat-card" id="sc-today">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:0.875rem;">
+      <div class="stat-card-icon" style="background:rgba(37,99,235,0.1);">
+        <span style="display:flex;width:1.25rem;height:1.25rem;color:#2563eb;">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/></svg>
+        </span>
+      </div>
+    </div>
+    <div class="stat-card-value" id="sc-today-val">—</div>
+    <div class="stat-card-label">Conversaciones hoy</div>
+  </div>
+
+  <div class="stat-card" id="sc-messages">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:0.875rem;">
+      <div class="stat-card-icon" style="background:rgba(22,163,74,0.1);">
+        <span style="display:flex;width:1.25rem;height:1.25rem;color:#16a34a;">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4l-2 2V5z" clip-rule="evenodd"/></svg>
+        </span>
+      </div>
+    </div>
+    <div class="stat-card-value" id="sc-messages-val">—</div>
+    <div class="stat-card-label">Mensajes totales</div>
+  </div>
+
+  <div class="stat-card" id="sc-pending">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:0.875rem;">
+      <div class="stat-card-icon" style="background:rgba(217,119,6,0.1);">
+        <span style="display:flex;width:1.25rem;height:1.25rem;color:#d97706;">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+        </span>
+      </div>
+    </div>
+    <div class="stat-card-value" id="sc-pending-val">—</div>
+    <div class="stat-card-label">Pendientes humano</div>
+  </div>
+
+  <div class="stat-card" id="sc-docs">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:0.875rem;">
+      <div class="stat-card-icon" style="background:rgba(124,58,237,0.1);">
+        <span style="display:flex;width:1.25rem;height:1.25rem;color:#7c3aed;">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+        </span>
+      </div>
+    </div>
+    <div class="stat-card-value" id="sc-docs-val">—</div>
+    <div class="stat-card-label">Documentos indexados</div>
+  </div>
 </div>
+
+<!-- ── Main grid: chart + recent convs ── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
+
+  <!-- Messages chart -->
+  <div class="card" style="grid-column:1/2;">
+    <div class="card-header">
+      <span style="font-size:0.9375rem;font-weight:600;color:var(--text-primary);">Actividad — últimos 7 días</span>
+    </div>
+    <div class="card-body" style="padding:1rem;">
+      <div style="position:relative;height:180px;">
+        <canvas id="messages-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service status -->
+  <div class="card" style="grid-column:2/3;">
+    <div class="card-header">
+      <span style="font-size:0.9375rem;font-weight:600;color:var(--text-primary);">Estado de servicios</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div id="services-list" style="padding:0.5rem 0;">
+        <div style="display:flex;align-items:center;justify-content:center;padding:2rem;">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Bottom grid: recent conversations + calendar ── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+
+  <!-- Recent conversations -->
+  <div class="card">
+    <div class="card-header">
+      <span style="font-size:0.9375rem;font-weight:600;color:var(--text-primary);">Conversaciones recientes</span>
+      <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/conversations"
+         style="font-size:0.8125rem;color:var(--color-primary);text-decoration:none;font-weight:500;">Ver todas →</a>
+    </div>
+    <div id="recent-convs" class="card-body" style="padding:0;">
+      <div style="display:flex;align-items:center;justify-content:center;padding:2rem;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar events -->
+  <div class="card" id="calendar-card">
+    <div class="card-header">
+      <span style="font-size:0.9375rem;font-weight:600;color:var(--text-primary);">Citas de hoy</span>
+      <a href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/calendar-settings"
+         style="font-size:0.8125rem;color:var(--color-primary);text-decoration:none;font-weight:500;">Configurar →</a>
+    </div>
+    <div id="calendar-events" class="card-body" style="padding:0;">
+      <div style="display:flex;align-items:center;justify-content:center;padding:2rem;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Responsive: stack on mobile -->
+<style>
+@media (max-width: 767px) {
+  #dash-main-grid, #dash-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
+  #dash-main-grid > div:first-child,
+  #dash-main-grid > div:last-child {
+    grid-column: 1/2 !important;
+  }
+}
+</style>
 
 <?php
 $content = ob_get_clean();
 
-ob_start();
-?>
+$scripts = '';
 
-async function loadStats() {
-    try {
-        const response = await fetch(BASE_PATH + '/api/stats');
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Error loading stats');
-        }
-        
-        const stats = data.stats;
-        
-        const html = `
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total Conversaciones</p>
-                            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">${stats.conversations.total}</p>
-                        </div>
-                        <div class="bg-blue-100 dark:bg-blue-900 rounded-full p-3">
-                            <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Conversaciones Activas</p>
-                            <p class="text-3xl font-bold text-accent">${stats.conversations.active}</p>
-                        </div>
-                        <div class="bg-green-100 dark:bg-green-900 rounded-full p-3">
-                            <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Pendientes Humano</p>
-                            <p class="text-3xl font-bold text-orange-600 dark:text-orange-400">${stats.conversations.pending_human}</p>
-                        </div>
-                        <div class="bg-orange-100 dark:bg-orange-900 rounded-full p-3">
-                            <svg class="w-8 h-8 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Documentos Indexados</p>
-                            <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">${stats.documents.total}</p>
-                        </div>
-                        <div class="bg-purple-100 dark:bg-purple-900 rounded-full p-3">
-                            <svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Vectores en Base</p>
-                            <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">${stats.vectors}</p>
-                        </div>
-                        <div class="bg-indigo-100 dark:bg-indigo-900 rounded-full p-3">
-                            <svg class="w-8 h-8 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total Mensajes</p>
-                            <p class="text-3xl font-bold text-teal-600 dark:text-teal-400">${stats.conversations.total_messages}</p>
-                        </div>
-                        <div class="bg-teal-100 dark:bg-teal-900 rounded-full p-3">
-                            <svg class="w-8 h-8 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                        Estado del Sistema
-                    </h2>
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
-                            <span class="text-gray-600 dark:text-gray-400 font-medium">Estado del Bot</span>
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                                <span class="w-2 h-2 mr-2 rounded-full bg-green-500 animate-pulse"></span>
-                                Activo
-                            </span>
-                        </div>
-                        <div class="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
-                            <span class="text-gray-600 dark:text-gray-400 font-medium">Base de Conocimiento</span>
-                            <span class="text-gray-900 dark:text-gray-100 font-semibold">${stats.documents.total} documentos</span>
-                        </div>
-                        <div class="flex items-center justify-between py-3">
-                            <span class="text-gray-600 dark:text-gray-400 font-medium">Tamaño Total</span>
-                            <span class="text-gray-900 dark:text-gray-100 font-semibold">${formatBytes(stats.documents.total_size)}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-primary dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 text-white dark:text-gray-100">
-                    <h2 class="text-xl font-bold mb-4">Acciones Rápidas</h2>
-                    <div class="space-y-3">
-                        <a href="/conversations" class="block bg-white dark:bg-gray-700 bg-opacity-20 dark:bg-opacity-100 hover:bg-opacity-30 dark:hover:bg-gray-600 rounded-lg p-4 transition-all">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                </svg>
-                                <span class="font-medium">Ver Conversaciones</span>
-                            </div>
-                        </a>
-                        <a href="/documents" class="block bg-white dark:bg-gray-700 bg-opacity-20 dark:bg-opacity-100 hover:bg-opacity-30 dark:hover:bg-gray-600 rounded-lg p-4 transition-all">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                                <span class="font-medium">Subir Documentos</span>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.getElementById('stats-container').innerHTML = html;
-        
-    } catch (error) {
-        document.getElementById('stats-container').innerHTML = `
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span>Error al cargar estadísticas: ${error.message}</span>
-                </div>
-            </div>
-        `;
-    }
-}
+/* Load Chart.js 4.4.4 before page scripts */
+$extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>';
 
-function formatBytes(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-}
-
-loadStats();
-setInterval(loadStats, 30000);
-
-<?php
-$scripts = ob_get_clean();
+$extraScripts = '<script src="' . (defined('BASE_PATH') ? BASE_PATH : '') . '/assets/js/dashboard.js"></script>';
 
 require __DIR__ . '/layout.php';
 ?>

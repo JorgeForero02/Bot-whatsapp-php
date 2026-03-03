@@ -1,659 +1,170 @@
 <?php
-$pageTitle = 'Conversaciones - WhatsApp Bot';
+$pageTitle   = 'Conversaciones - WhatsApp Bot';
 $currentPage = 'conversations';
 
 ob_start();
 ?>
 
-<div class="bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden" style="height: calc(100vh - 120px);">
-    <div class="grid grid-cols-1 lg:grid-cols-12 h-full">
-        <div class="lg:col-span-4 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                <div class="flex space-x-2 mb-3">
-                    <button onclick="filterConversations('all')" class="flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-all" id="filter-all">
-                        Todas
-                    </button>
-                    <button onclick="filterConversations('active')" class="flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-all" id="filter-active">
-                        Activas
-                    </button>
-                    <button onclick="filterConversations('pending_human')" class="flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-all" id="filter-pending">
-                        Pendientes
-                    </button>
-                </div>
-                <div class="relative">
-                    <input type="text" id="search-conversations" placeholder="Buscar conversación..." class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                    <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                </div>
-            </div>
-            
-            <div id="conversations-list" class="overflow-y-auto" style="height: calc(100% - 140px);">
-                <div class="flex items-center justify-center h-full text-gray-500">
-                    <div class="text-center">
-                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                        <p>Cargando conversaciones...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="lg:col-span-8 flex flex-col" style="height: 100%;">
-            <div id="chat-header" class="hidden p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-primary dark:bg-primary rounded-full flex items-center justify-center text-white font-semibold">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-900 dark:text-gray-100" id="chat-contact-name"></h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400" id="chat-contact-phone"></p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <div class="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-700">
-                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">IA Bot</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="ai-toggle" class="sr-only peer" checked onchange="toggleAI()">
-                                <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                            </label>
-                        </div>
-                        <button onclick="closeChat()" class="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="chat-messages" class="overflow-y-auto p-6 chat-container bg-gray-50 dark:bg-gray-900" style="flex: 1 1 0; min-height: 0;">
-                <button id="load-more-btn" class="hidden w-full mb-4 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center space-x-2" onclick="loadMoreMessages()">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
-                    </svg>
-                    <span>Cargar mensajes anteriores</span>
-                </button>
-                <div id="messages-content">
-                    <div class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
-                        <div class="text-center">
-                            <svg class="w-20 h-20 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                            <p class="text-lg font-medium dark:text-gray-300">Selecciona una conversación</p>
-                            <p class="text-sm mt-2 dark:text-gray-400">Elige una conversación de la lista para ver los mensajes</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="chat-input" class="hidden p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" style="flex-shrink: 0;">
-                <div class="flex items-end space-x-2">
-                    <textarea id="reply-input" placeholder="Escribe tu respuesta..." rows="1" class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" style="max-height: 120px;"></textarea>
-                    <button onclick="sendReply()" class="px-6 py-3 bg-primary hover:bg-secondary text-white rounded-xl font-medium transition-all flex items-center space-x-2">
-                        <span>Enviar</span>
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
+<style>
+.conv-panel { display:flex; flex-direction:column; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-xl); overflow:hidden; }
+.conv-filter-btn { flex:1; padding:0.4375rem 0.75rem; font-size:0.8125rem; font-weight:500; border-radius:var(--radius-md); border:1px solid var(--border-color); background:transparent; color:var(--text-secondary); cursor:pointer; transition:all 0.15s ease; min-height:36px; }
+.conv-filter-btn.active { background:var(--color-primary); color:#fff; border-color:var(--color-primary); }
+.conv-filter-btn:hover:not(.active) { background:var(--bg-elevated); }
+.conv-item { display:flex; align-items:center; gap:0.75rem; padding:0.875rem 1rem; border-bottom:1px solid var(--border-subtle); cursor:pointer; transition:background 0.15s ease; }
+.conv-item:hover { background:var(--bg-elevated); }
+.conv-item.selected { background:var(--bg-elevated); border-left:3px solid var(--color-primary); }
+@media (max-width:767px) {
+  #list-panel  { display:flex !important; }
+  #chat-panel  { display:none !important; }
+  #chat-panel.mobile-open { display:flex !important; }
+  #list-panel.mobile-hidden { display:none !important; }
+}
+</style>
+
+<div style="display:flex;gap:1rem;height:calc(100vh - 120px);min-height:500px;">
+  <!-- ── List panel ── -->
+  <div id="list-panel" class="conv-panel" style="width:320px;flex-shrink:0;">
+    <!-- Search + filters -->
+    <div style="padding:0.75rem;border-bottom:1px solid var(--border-color);flex-shrink:0;">
+      <div style="display:flex;gap:0.375rem;margin-bottom:0.625rem;">
+        <button class="conv-filter-btn active" id="filter-all"     onclick="filterConversations('all')">Todas</button>
+        <button class="conv-filter-btn"        id="filter-active"  onclick="filterConversations('active')">Activas</button>
+        <button class="conv-filter-btn"        id="filter-pending" onclick="filterConversations('pending_human')">Pendientes</button>
+      </div>
+      <div style="position:relative;">
+        <input type="text" id="search-conversations"
+               class="form-input" style="padding-left:2.25rem;"
+               placeholder="Buscar por nombre o número…">
+        <svg style="position:absolute;left:0.625rem;top:50%;transform:translateY(-50%);width:1rem;height:1rem;color:var(--text-muted);pointer-events:none;"
+             viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+        </svg>
+      </div>
     </div>
+    <!-- Conversations list -->
+    <div id="conversations-list" style="flex:1;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:center;padding:3rem;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+        
+  <!-- ── Chat panel ── -->
+  <div id="chat-panel" class="conv-panel" style="flex:1;min-width:0;">
+
+    <!-- Chat header -->
+    <div id="chat-header" class="hidden" style="padding:0.875rem 1rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:0.75rem;flex-shrink:0;">
+      <!-- Back button (mobile) -->
+      <button onclick="closeChat()" id="back-btn"
+              style="display:none;padding:0.375rem;border-radius:var(--radius-md);border:1px solid var(--border-color);background:transparent;cursor:pointer;color:var(--text-secondary);flex-shrink:0;"
+              aria-label="Volver">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+      <!-- Avatar -->
+      <div class="avatar avatar-md" id="chat-avatar" style="flex-shrink:0;">?</div>
+      <!-- Name / phone -->
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.9375rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="chat-contact-name"></div>
+        <div style="font-size:0.8125rem;color:var(--text-muted);" id="chat-contact-phone"></div>
+      </div>
+      <!-- AI toggle -->
+      <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+        <span style="font-size:0.75rem;font-weight:500;color:var(--text-secondary);">IA Bot</span>
+        <label class="toggle" title="Activar/desactivar IA">
+          <input type="checkbox" id="ai-toggle" onchange="toggleAI()">
+          <span class="toggle-thumb"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Messages area -->
+    <div id="chat-messages" class="chat-container" style="flex:1;overflow-y:auto;padding:1rem;">
+      <button id="load-more-btn" class="hidden btn btn-secondary btn-sm" style="width:100%;margin-bottom:1rem;" onclick="loadMoreMessages()">
+        Cargar mensajes anteriores
+      </button>
+      <div id="messages-content">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;color:var(--text-muted);text-align:center;gap:0.75rem;padding:2rem;">
+          <svg width="56" height="56" viewBox="0 0 20 20" fill="currentColor" style="opacity:0.2;">
+            <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z" clip-rule="evenodd"/>
+          </svg>
+          <p style="font-size:1rem;font-weight:500;color:var(--text-secondary);">Selecciona una conversación</p>
+          <p style="font-size:0.875rem;">Elige una conversación de la lista para ver los mensajes</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reply input -->
+    <div id="chat-input" class="hidden" style="padding:0.875rem 1rem;border-top:1px solid var(--border-color);flex-shrink:0;">
+      <div style="display:flex;align-items:flex-end;gap:0.625rem;">
+        <textarea id="reply-input"
+                  class="form-textarea"
+                  placeholder="Escribe tu respuesta… (Enter para enviar, Shift+Enter para nueva línea)"
+                  rows="1"
+                  style="flex:1;resize:none;max-height:120px;border-radius:var(--radius-lg);"></textarea>
+        <button id="send-btn" onclick="sendReply()" class="btn btn-primary btn-md" style="flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+          </svg>
+          Enviar
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+<script>
+(function() {
+  /* Show back button on mobile */
+  function syncBackBtn() {
+    var btn = document.getElementById('back-btn');
+    if (btn) btn.style.display = window.innerWidth < 768 ? 'flex' : 'none';
+  }
+  syncBackBtn();
+  window.addEventListener('resize', syncBackBtn);
+
+  /* Mobile: when viewConversation is called, switch panels */
+  var origView = window.viewConversation;
+  if (origView) {
+    window._origViewConversation = origView;
+    window.viewConversation = function(id, name, phone) {
+      origView(id, name, phone);
+      if (window.innerWidth < 768) {
+        document.getElementById('list-panel').classList.add('mobile-hidden');
+        document.getElementById('chat-panel').classList.add('mobile-open');
+        document.getElementById('chat-panel').style.display = 'flex';
+      }
+      /* update avatar initial */
+      var avatarEl = document.getElementById('chat-avatar');
+      if (avatarEl) avatarEl.textContent = (name || '?').charAt(0).toUpperCase();
+    };
+  }
+
+  /* Mobile: closeChat restores list */
+  var origClose = window.closeChat;
+  if (origClose) {
+    window._origCloseChat = origClose;
+    window.closeChat = function() {
+      origClose();
+      if (window.innerWidth < 768) {
+        document.getElementById('list-panel').classList.remove('mobile-hidden');
+        document.getElementById('chat-panel').classList.remove('mobile-open');
+        document.getElementById('chat-panel').style.display = '';
+      }
+      var avatarEl = document.getElementById('chat-avatar');
+      if (avatarEl) avatarEl.textContent = '?';
+    };
+  }
+})();
+</script>
 
 <?php
 $content = ob_get_clean();
 
-ob_start();
-?>
-
-let currentFilter = 'all';
-let currentConversationId = null;
-let allConversations = [];
-let messagesOffset = 0;
-let hasMoreMessages = false;
-let autoRefreshInterval = null;
-let lastCheckTime = new Date().toISOString();
-let lastConversationsCheck = new Date().toISOString();
-let conversationsRefreshInterval = null;
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-async function loadConversations(status = null) {
-    try {
-        const url = status ? `${BASE_PATH}/api/conversations?status=${status}` : BASE_PATH + '/api/conversations';
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Error loading conversations');
-        }
-        
-        allConversations = data.conversations;
-        renderConversationsList(allConversations);
-        updateFilterButtons();
-        
-    } catch (error) {
-        document.getElementById('conversations-list').innerHTML = `
-            <div class="p-4 text-center text-red-600">
-                <svg class="w-12 h-12 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                </svg>
-                <p class="font-medium">Error al cargar</p>
-                <p class="text-sm">${error.message}</p>
-            </div>
-        `;
-    }
-}
-
-function renderConversationsList(conversations) {
-    const container = document.getElementById('conversations-list');
-    const fragment = document.createDocumentFragment();
-    
-    if (conversations.length === 0) {
-        container.innerHTML = `
-            <div class="p-8 text-center text-gray-500">
-                <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                </svg>
-                <p class="font-medium">No hay conversaciones</p>
-                <p class="text-sm mt-1">Las conversaciones aparecerán aquí</p>
-            </div>
-        `;
-        return;
-    }
-    
-    const existingItems = container.querySelectorAll('[data-conv-id]');
-    const existingMap = new Map();
-    existingItems.forEach(item => {
-        existingMap.set(parseInt(item.dataset.convId), item);
-    });
-    
-    const orderedElements = [];
-    
-    conversations.forEach(conv => {
-        const statusColor = conv.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 
-                          conv.status === 'pending_human' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-        const statusText = conv.status === 'active' ? 'Activa' : 
-                         conv.status === 'pending_human' ? 'Pendiente' : 'Cerrada';
-        
-        const lastMessage = conv.recent_messages && conv.recent_messages.length > 0 
-            ? conv.recent_messages[conv.recent_messages.length - 1].message_text 
-            : 'Sin mensajes';
-        
-        const timeAgo = formatTimeAgo(new Date(conv.last_message_at));
-        const initial = (conv.contact_name || conv.phone_number).charAt(0).toUpperCase();
-        
-        const existingItem = existingMap.get(conv.id);
-        
-        const needsUpdate = !existingItem || 
-            existingItem.dataset.lastUpdate !== conv.last_message_at ||
-            existingItem.dataset.status !== conv.status ||
-            (currentConversationId === conv.id && !existingItem.classList.contains('bg-gray-100'));
-        
-        if (existingItem && !needsUpdate) {
-            orderedElements.push(existingItem);
-            existingMap.delete(conv.id);
-        } else {
-            const div = document.createElement('div');
-            div.dataset.convId = conv.id;
-            div.dataset.lastUpdate = conv.last_message_at;
-            div.dataset.status = conv.status;
-            div.onclick = () => viewConversation(conv.id, conv.contact_name || 'Sin nombre', conv.phone_number);
-            div.className = `border-b border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${currentConversationId === conv.id ? 'bg-gray-100 dark:bg-gray-700 border-l-4 border-l-primary' : ''}`;
-            
-            div.innerHTML = `
-                <div class="flex items-start space-x-3">
-                    <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                        ${initial}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-semibold text-gray-900 dark:text-gray-100 truncate">${conv.contact_name || 'Sin nombre'}</h4>
-                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${timeAgo}</span>
-                        </div>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 truncate mb-1">${conv.phone_number}</p>
-                        <div class="flex items-center justify-between">
-                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate flex-1">${lastMessage.substring(0, 50)}${lastMessage.length > 50 ? '...' : ''}</p>
-                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}">
-                                ${statusText}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            fragment.appendChild(div);
-            existingMap.delete(conv.id);
-        }
-    });
-    
-    if (fragment.children.length > 0 || existingMap.size > 0) {
-        container.innerHTML = '';
-        container.appendChild(fragment);
-    }
-}
-
-function updateFilterButtons() {
-    const buttons = {
-        'all': document.getElementById('filter-all'),
-        'active': document.getElementById('filter-active'),
-        'pending_human': document.getElementById('filter-pending')
-    };
-    
-    Object.keys(buttons).forEach(key => {
-        if (key === currentFilter) {
-            buttons[key].className = 'flex-1 px-3 py-2 text-sm font-medium rounded-lg bg-primary text-white transition-all';
-        } else {
-            buttons[key].className = 'flex-1 px-3 py-2 text-sm font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 transition-all';
-        }
-    });
-}
-
-function formatTimeAgo(date) {
-    const seconds = Math.floor((new Date() - date) / 1000);
-    
-    if (seconds < 60) return 'Ahora';
-    if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
-    if (seconds < 86400) return Math.floor(seconds / 3600) + 'h';
-    if (seconds < 604800) return Math.floor(seconds / 86400) + 'd';
-    return date.toLocaleDateString();
-}
-
-function filterConversations(status) {
-    currentFilter = status;
-    loadConversations(status === 'all' ? null : status);
-}
-
-async function viewConversation(id, name, phone) {
-    currentConversationId = id;
-    messagesOffset = 0;
-    
-    const conv = allConversations.find(c => c.id === id);
-    if (!conv) return;
-    
-    document.getElementById('chat-header').classList.remove('hidden');
-    document.getElementById('chat-input').classList.remove('hidden');
-    document.getElementById('chat-contact-name').textContent = name;
-    document.getElementById('chat-contact-phone').textContent = phone;
-    
-    const aiToggle = document.getElementById('ai-toggle');
-    aiToggle.checked = conv.ai_enabled !== false;
-    
-    await loadMessages(id);
-    renderConversationsList(allConversations);
-    
-    startAutoRefresh();
-    startConversationsAutoRefresh();
-}
-
-function startConversationsAutoRefresh() {
-    if (conversationsRefreshInterval) {
-        clearInterval(conversationsRefreshInterval);
-    }
-    
-    conversationsRefreshInterval = setInterval(async () => {
-        try {
-            const response = await fetch(`${BASE_PATH}/api/check-conversation-updates?last_check=${encodeURIComponent(lastConversationsCheck)}`);
-            const data = await response.json();
-            
-            if (data.success && data.has_updates) {
-                await loadConversations(currentFilter === 'all' ? null : currentFilter);
-                lastConversationsCheck = new Date().toISOString();
-            }
-        } catch (error) {
-            console.error('Error checking conversation updates:', error);
-        }
-    }, 3000);
-}
-
-function startAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-    }
-    
-    autoRefreshInterval = setInterval(async () => {
-        if (currentConversationId) {
-            try {
-                const response = await fetch(`${BASE_PATH}/api/check-updates?last_check=${encodeURIComponent(lastCheckTime)}&conversation_id=${currentConversationId}`);
-                const data = await response.json();
-                
-                if (data.success && data.has_update) {
-                    const chatMessages = document.getElementById('chat-messages');
-                    const scrollPos = chatMessages.scrollTop;
-                    const scrollHeight = chatMessages.scrollHeight;
-                    const isAtBottom = (scrollHeight - scrollPos - chatMessages.clientHeight) < 100;
-                    
-                    const currentOffset = messagesOffset;
-                    messagesOffset = 0;
-                    
-                    await loadMessages(currentConversationId);
-                    
-                    messagesOffset = currentOffset;
-                    await loadConversations(currentFilter === 'all' ? null : currentFilter);
-                    
-                    if (isAtBottom) {
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    }
-                    
-                    lastCheckTime = new Date().toISOString();
-                }
-            } catch (error) {
-                console.error('Error checking updates:', error);
-            }
-        }
-    }, 2000);
-}
-
-async function loadMessages(conversationId, append = false) {
-    try {
-        const response = await fetch(`${BASE_PATH}/api/conversations/${conversationId}/messages?offset=${messagesOffset}&limit=20`);
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Error loading messages');
-        }
-        
-        hasMoreMessages = data.has_more;
-        const loadMoreBtn = document.getElementById('load-more-btn');
-        const messagesContent = document.getElementById('messages-content');
-        
-        if (hasMoreMessages) {
-            loadMoreBtn.classList.remove('hidden');
-        } else {
-            loadMoreBtn.classList.add('hidden');
-        }
-        
-        let messagesHtml = '<div class="space-y-4 pb-4">';
-        
-        if (!data.messages || data.messages.length === 0) {
-            messagesHtml += '<div class="text-center text-gray-500 dark:text-gray-400 py-8">No hay mensajes en esta conversación</div>';
-        } else {
-            data.messages.forEach(msg => {
-                const isUser = msg.sender_type === 'user';
-                const isBot = msg.sender_type === 'bot';
-                const time = new Date(msg.created_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-                
-                messagesHtml += `
-                    <div class="flex ${isUser ? 'justify-start' : 'justify-end'} message-bubble">
-                        <div class="max-w-xs lg:max-w-md xl:max-w-lg">
-                            <div class="${isUser ? 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600' : 'bg-primary'} rounded-2xl px-4 py-2 shadow-sm">
-                                ${msg.media_type === 'audio' && msg.audio_url ? `
-                                    <div class="flex items-center space-x-2 mb-2">
-                                        <svg class="w-5 h-5 ${isUser ? 'text-primary' : 'text-white'}" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"/>
-                                        </svg>
-                                        <span class="text-xs font-semibold ${isUser ? 'text-gray-700 dark:text-gray-300' : 'text-white'}">Mensaje de voz</span>
-                                    </div>
-                                    <audio controls class="w-full rounded" style="max-width: 280px; height: 40px;">
-                                        <source src="${msg.audio_url}" type="audio/ogg">
-                                        Tu navegador no soporta audio.
-                                    </audio>
-                                    <details class="mt-3">
-                                        <summary class="cursor-pointer text-xs ${isUser ? 'text-gray-500 dark:text-gray-400' : 'text-white opacity-75'} hover:underline">
-                                            Ver transcripción
-                                        </summary>
-                                        <div class="mt-2 p-2 ${isUser ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white bg-opacity-20'} rounded text-xs ${isUser ? 'text-gray-700 dark:text-gray-300' : 'text-white'} italic">
-                                            ${escapeHtml(msg.message_text.replace('[Audio] ', ''))}
-                                        </div>
-                                    </details>
-                                ` : `
-                                    <p class="${isUser ? 'text-gray-900 dark:text-gray-100' : 'text-white'} text-sm break-words">${escapeHtml(msg.message_text)}</p>
-                                `}
-                            </div>
-                            <div class="flex items-center ${isUser ? 'justify-start' : 'justify-end'} mt-1 px-2 space-x-2">
-                                <span class="text-xs text-gray-500 dark:text-gray-400">${time}</span>
-                                ${msg.confidence_score ? `<span class="text-xs text-gray-400 dark:text-gray-500">(${Math.round(msg.confidence_score * 100)}%)</span>` : ''}
-                                ${!isUser ? '<svg class="w-4 h-4 text-blue-500 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg>' : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        
-        messagesHtml += '</div>';
-        
-        if (append) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = messagesHtml;
-            const newMessages = tempDiv.firstChild;
-            const existingMessages = messagesContent.querySelector('.space-y-4');
-            
-            if (existingMessages && newMessages) {
-                Array.from(newMessages.children).reverse().forEach(child => {
-                    existingMessages.insertBefore(child, existingMessages.firstChild);
-                });
-            }
-        } else {
-            const existingContainer = messagesContent.querySelector('.space-y-4');
-            
-            const lastMsg = data.messages.length > 0 ? data.messages[data.messages.length - 1] : null;
-            const currentHash = lastMsg ? `${lastMsg.id}-${lastMsg.message_text.length}` : 'empty';
-            
-            if (!existingContainer || 
-                existingContainer.dataset.messageHash !== currentHash ||
-                existingContainer.children.length !== data.messages.length) {
-                
-                messagesContent.innerHTML = messagesHtml;
-                
-                const newContainer = messagesContent.querySelector('.space-y-4');
-                if (newContainer) {
-                    newContainer.dataset.messageHash = currentHash;
-                }
-                
-                const chatMessages = document.getElementById('chat-messages');
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        }
-        
-    } catch (error) {
-        console.error('Error loading messages:', error);
-        const messagesContent = document.getElementById('messages-content');
-        messagesContent.innerHTML = `
-            <div class="text-center text-red-500 dark:text-red-400 py-8">
-                Error al cargar mensajes: ${error.message}
-            </div>
-        `;
-    }
-}
-
-async function loadMoreMessages() {
-    if (!currentConversationId || !hasMoreMessages) return;
-    
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    const originalText = loadMoreBtn.innerHTML;
-    
-    loadMoreBtn.disabled = true;
-    loadMoreBtn.innerHTML = `
-        <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-        </svg>
-        <span>Cargando...</span>
-    `;
-    
-    const chatMessages = document.getElementById('chat-messages');
-    const scrollHeightBefore = chatMessages.scrollHeight;
-    
-    messagesOffset += 20;
-    await loadMessages(currentConversationId, true);
-    
-    const scrollHeightAfter = chatMessages.scrollHeight;
-    chatMessages.scrollTop = scrollHeightAfter - scrollHeightBefore;
-    
-    loadMoreBtn.disabled = false;
-    loadMoreBtn.innerHTML = originalText;
-}
-
-function closeChat() {
-    document.getElementById('chat-header').classList.add('hidden');
-    document.getElementById('chat-input').classList.add('hidden');
-    document.getElementById('load-more-btn').classList.add('hidden');
-    document.getElementById('messages-content').innerHTML = `
-        <div class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
-            <div class="text-center">
-                <svg class="w-20 h-20 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                </svg>
-                <p class="text-lg font-medium dark:text-gray-300">Selecciona una conversación</p>
-                <p class="text-sm mt-2 dark:text-gray-400">Elige una conversación de la lista para ver los mensajes</p>
-            </div>
-        </div>
-    `;
-    currentConversationId = null;
-    messagesOffset = 0;
-    
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-    }
-    
-    if (conversationsRefreshInterval) {
-        clearInterval(conversationsRefreshInterval);
-        conversationsRefreshInterval = null;
-    }
-    
-    renderConversationsList(allConversations);
-}
-
-async function sendReply() {
-    const textarea = document.getElementById('reply-input');
-    const message = textarea.value.trim();
-    
-    if (!message) {
-        return;
-    }
-    
-    const sendButton = event.target;
-    sendButton.disabled = true;
-    sendButton.innerHTML = '<span class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>';
-    
-    try {
-        const response = await fetch(`${BASE_PATH}/api/conversations/${currentConversationId}/reply`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message})
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            textarea.value = '';
-            textarea.style.height = 'auto';
-            
-            await loadMessages(currentConversationId);
-            await loadConversations(currentFilter === 'all' ? null : currentFilter);
-            
-            const chatMessages = document.getElementById('chat-messages');
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        } else {
-            throw new Error(data.error);
-        }
-        
-    } catch (error) {
-        alert('Error al enviar respuesta: ' + error.message);
-    } finally {
-        sendButton.disabled = false;
-        sendButton.innerHTML = '<span>Enviar</span><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
-    }
-}
-
-async function toggleAI() {
-    if (!currentConversationId) return;
-    
-    const aiToggle = document.getElementById('ai-toggle');
-    const newState = aiToggle.checked;
-    
-    if (newState) {
-        const statusResponse = await fetch(BASE_PATH + '/api/check-openai-status');
-        const statusData = await statusResponse.json();
-        
-        if (statusData.success && !statusData.can_enable_ai) {
-            alert('⚠️ No se puede activar la IA.\n\nFondos insuficientes en OpenAI.\nPor favor recarga tu cuenta de OpenAI.');
-            aiToggle.checked = false;
-            return;
-        }
-    }
-    
-    try {
-        const response = await fetch(`${BASE_PATH}/api/conversations/${currentConversationId}/toggle-ai`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                ai_enabled: newState
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            const conv = allConversations.find(c => c.id === currentConversationId);
-            if (conv) {
-                conv.ai_enabled = newState;
-            }
-            
-            const notification = document.createElement('div');
-            notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-            notification.innerHTML = `IA Bot ${newState ? 'activado' : 'desactivado'}`;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => notification.remove(), 2000);
-        } else {
-            throw new Error(data.error);
-        }
-    } catch (error) {
-        aiToggle.checked = !newState;
-        alert('Error al cambiar estado de IA: ' + error.message);
-    }
-}
-
-document.getElementById('reply-input')?.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
-
-document.getElementById('reply-input')?.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendReply();
-    }
-});
-
-document.getElementById('search-conversations')?.addEventListener('input', function(e) {
-    const search = e.target.value.toLowerCase();
-    const filtered = allConversations.filter(conv => 
-        (conv.contact_name && conv.contact_name.toLowerCase().includes(search)) ||
-        conv.phone_number.includes(search)
-    );
-    renderConversationsList(filtered);
-});
-
-loadConversations();
-setInterval(() => {
-    if (currentConversationId) {
-        const oldConv = allConversations.find(c => c.id === currentConversationId);
-        loadConversations(currentFilter === 'all' ? null : currentFilter).then(() => {
-            const conv = allConversations.find(c => c.id === currentConversationId);
-            if (conv && JSON.stringify(conv.recent_messages) !== JSON.stringify(oldConv?.recent_messages)) {
-                viewConversation(conv.id, conv.contact_name || 'Sin nombre', conv.phone_number);
-            }
-        });
-    } else {
-        loadConversations(currentFilter === 'all' ? null : currentFilter);
-    }
-}, 15000);
-
-<?php
-$scripts = ob_get_clean();
+$scripts = '';
+$extraScripts = '<script src="' . (defined('BASE_PATH') ? BASE_PATH : '') . '/assets/js/conversations.js"></script>';
 
 require __DIR__ . '/layout.php';
 ?>

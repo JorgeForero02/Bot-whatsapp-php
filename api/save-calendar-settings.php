@@ -3,14 +3,9 @@
 if (ob_get_level()) ob_end_clean();
 ob_start();
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/bootstrap.php';
 
-use App\Core\Database;
-use App\Core\Config;
-use App\Core\Logger;
 use App\Helpers\TimeValidator;
-
-header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -20,10 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    $config = Config::load(__DIR__ . '/../config/config.php');
-    $db = Database::getInstance(Config::get('database'));
-    $logger = new Logger(__DIR__ . '/../logs');
-    
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
     
@@ -167,5 +158,5 @@ try {
 } catch (\Exception $e) {
     http_response_code(500);
     ob_clean();
-    echo json_encode(['error' => 'Error al guardar configuración: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Error al guardar configuración del calendario']);
 }

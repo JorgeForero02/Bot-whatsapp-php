@@ -95,9 +95,10 @@ class DocumentService
 
     public function getAllDocuments($limit = 100)
     {
+        $limit = (int) $limit;
         return $this->db->fetchAll(
-            'SELECT * FROM documents ORDER BY created_at DESC LIMIT :limit',
-            [':limit' => $limit]
+            "SELECT * FROM documents ORDER BY created_at DESC LIMIT {$limit}",
+            []
         );
     }
 

@@ -3,17 +3,7 @@
 if (ob_get_level()) ob_end_clean();
 ob_start();
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
-use App\Core\Config;
-use App\Core\Database;
-use App\Core\Logger;
-
-$config = Config::load(__DIR__ . '/../config/config.php');
-$db = Database::getInstance(Config::get('database'));
-$logger = new Logger(__DIR__ . '/../logs');
-
-header('Content-Type: application/json');
+require_once __DIR__ . '/bootstrap.php';
 
 try {
     $settings = $db->fetchAll(
@@ -32,7 +22,9 @@ try {
         'openaiModel' => 'gpt-4',
         'temperature' => 0.7,
         'timeout' => 30,
-        'contextMessagesCount' => 5
+        'contextMessagesCount' => 5,
+        'calendarEnabled' => true,
+        'botMode' => 'ai'
     ];
 
     foreach ($settings as $setting) {
@@ -70,6 +62,12 @@ try {
             case 'context_messages_count':
                 $response['contextMessagesCount'] = intval($setting['setting_value']);
                 break;
+            case 'calendar_enabled':
+                $response['calendarEnabled'] = ($setting['setting_value'] === 'true' || $setting['setting_value'] === '1');
+                break;
+            case 'bot_mode':
+                $response['botMode'] = $setting['setting_value'];
+                break;
         }
     }
 
@@ -87,6 +85,6 @@ try {
     ob_clean();
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'Error al obtener configuración'
     ]);
 }

@@ -1,18 +1,15 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+if (ob_get_level()) ob_end_clean();
+ob_start();
+
+require_once __DIR__ . '/bootstrap.php';
 
 use App\Core\Config;
-use App\Core\Database;
-use App\Core\Logger;
 use App\Services\ConversationService;
 use App\Services\WhatsAppService;
-
-$config = Config::load(__DIR__ . '/../config/config.php');
-$db = Database::getInstance(Config::get('database'));
-$logger = new Logger(__DIR__ . '/../logs');
-
-header('Content-Type: application/json');
+use App\Services\EncryptionService;
+use App\Services\CredentialService;
 
 try {
     $id = $_GET['id'] ?? null;
@@ -31,12 +28,28 @@ try {
         throw new \RuntimeException('Conversation not found');
     }
 
-    $whatsapp = new WhatsAppService(
-        Config::get('whatsapp.access_token'),
-        Config::get('whatsapp.phone_number_id'),
-        Config::get('whatsapp.api_version'),
-        $logger
-    );
+    try {
+        $encryption = new EncryptionService();
+        $credentialService = new CredentialService($db, $encryption);
+        if ($credentialService->hasWhatsAppCredentials()) {
+            $waCreds = $credentialService->getWhatsAppCredentials();
+            $whatsapp = new WhatsAppService(
+                $waCreds['access_token'],
+                $waCreds['phone_number_id'],
+                Config::get('whatsapp.api_version'),
+                $logger
+            );
+        } else {
+            throw new \Exception('No DB credentials');
+        }
+    } catch (\Exception $credEx) {
+        $whatsapp = new WhatsAppService(
+            Config::get('whatsapp.access_token'),
+            Config::get('whatsapp.phone_number_id'),
+            Config::get('whatsapp.api_version'),
+            $logger
+        );
+    }
 
     $whatsapp->sendMessage($result['phone_number'], $message);
 
@@ -49,6 +62,7 @@ try {
         [':id' => $id]
     );
 
+    ob_clean();
     echo json_encode([
         'success' => true,
         'message' => 'Reply sent successfully'
@@ -57,8 +71,9 @@ try {
 } catch (\Exception $e) {
     $logger->error('Reply Error: ' . $e->getMessage());
     http_response_code(500);
+    ob_clean();
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'Error al enviar respuesta'
     ]);
 }

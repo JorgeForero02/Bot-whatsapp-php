@@ -1,20 +1,17 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+if (ob_get_level()) ob_end_clean();
+ob_start();
+
+require_once __DIR__ . '/bootstrap.php';
 
 use App\Core\Config;
-use App\Core\Database;
-use App\Core\Logger;
 use App\Services\DocumentService;
 use App\Services\OpenAIService;
+use App\Services\EncryptionService;
+use App\Services\CredentialService;
 use App\Services\VectorSearchService;
 use App\Services\RAGService;
-
-$config = Config::load(__DIR__ . '/../config/config.php');
-$db = Database::getInstance(Config::get('database'));
-$logger = new Logger(__DIR__ . '/../logs');
-
-header('Content-Type: application/json');
 
 try {
     if (!isset($_FILES['document'])) {
@@ -30,12 +27,28 @@ try {
 
     $document = $documentService->uploadDocument($_FILES['document']);
 
-    $openai = new OpenAIService(
-        Config::get('openai.api_key'),
-        Config::get('openai.model'),
-        Config::get('openai.embedding_model'),
-        $logger
-    );
+    try {
+        $encryption = new EncryptionService();
+        $credentialService = new CredentialService($db, $encryption);
+        if ($credentialService->hasOpenAICredentials()) {
+            $oaiCreds = $credentialService->getOpenAICredentials();
+            $openai = new OpenAIService(
+                $oaiCreds['api_key'],
+                $oaiCreds['model'],
+                $oaiCreds['embedding_model'],
+                $logger
+            );
+        } else {
+            throw new \Exception('No DB credentials');
+        }
+    } catch (\Exception $credEx) {
+        $openai = new OpenAIService(
+            Config::get('openai.api_key'),
+            Config::get('openai.model'),
+            Config::get('openai.embedding_model'),
+            $logger
+        );
+    }
 
     $vectorSearch = new VectorSearchService($db, Config::get('rag.similarity_method'));
 
@@ -44,7 +57,8 @@ try {
         $vectorSearch,
         $logger,
         Config::get('rag.top_k_results'),
-        Config::get('rag.similarity_threshold')
+        Config::get('rag.similarity_threshold'),
+        $db
     );
 
     $chunksIndexed = $rag->indexDocument(
@@ -56,6 +70,7 @@ try {
 
     $documentService->updateChunkCount($document['id'], $chunksIndexed);
 
+    ob_clean();
     echo json_encode([
         'success' => true,
         'document' => [
@@ -68,8 +83,9 @@ try {
 } catch (\Exception $e) {
     $logger->error('Upload Error: ' . $e->getMessage());
     http_response_code(500);
+    ob_clean();
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'Error al subir documento'
     ]);
 }

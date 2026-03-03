@@ -1,16 +1,9 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+if (ob_get_level()) ob_end_clean();
+ob_start();
 
-use App\Core\Config;
-use App\Core\Database;
-use App\Core\Logger;
-
-$config = Config::load(__DIR__ . '/../config/config.php');
-$db = Database::getInstance(Config::get('database'));
-$logger = new Logger(__DIR__ . '/../logs');
-
-header('Content-Type: application/json');
+require_once __DIR__ . '/bootstrap.php';
 
 try {
     $id = $_GET['id'] ?? null;
@@ -29,6 +22,7 @@ try {
         
         if ($openaiStatus && $openaiStatus['setting_value'] === 'insufficient_funds') {
             http_response_code(402);
+            ob_clean();
             echo json_encode([
                 'success' => false,
                 'error' => 'INSUFFICIENT_FUNDS',
@@ -46,6 +40,7 @@ try {
         ]
     );
 
+    ob_clean();
     echo json_encode([
         'success' => true,
         'message' => 'AI state updated successfully'
@@ -54,8 +49,9 @@ try {
 } catch (\Exception $e) {
     $logger->error('Toggle AI Error: ' . $e->getMessage());
     http_response_code(500);
+    ob_clean();
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'Error al cambiar estado de IA'
     ]);
 }

@@ -1,5 +1,16 @@
 <?php
 
+$allowedIps = ['127.0.0.1', '::1'];
+$clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
+$token = $_GET['token'] ?? '';
+$expectedToken = getenv('SYSTEM_CHECK_TOKEN') ?: '';
+
+if (!in_array($clientIp, $allowedIps) && $token !== $expectedToken) {
+    http_response_code(403);
+    echo 'Forbidden. Use ?token=YOUR_TOKEN or access from localhost.';
+    exit;
+}
+
 header('Content-Type: text/html; charset=utf-8');
 
 echo "<!DOCTYPE html><html><head><title>System Check</title>";

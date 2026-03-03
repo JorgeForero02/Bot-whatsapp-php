@@ -5,143 +5,174 @@ $currentPage = 'documents';
 ob_start();
 ?>
 
-<div class="mb-6">
-    <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Documentos</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-400">Gestiona la base de conocimiento del bot subiendo y organizando documentos</p>
+<!-- Page header -->
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+  <div>
+    <h1 class="page-title">Documentos</h1>
+    <p class="page-subtitle">Base de conocimiento del bot &mdash; sube y gestiona documentos</p>
+  </div>
+  <button onclick="loadDocuments()" class="btn btn-secondary btn-md">
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+    Actualizar
+  </button>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-    <div class="lg:col-span-2">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <svg class="w-6 h-6 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
-                Subir Nuevo Documento
-            </h2>
-            
-            <form id="upload-form" enctype="multipart/form-data">
-                <div id="drop-zone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-primary dark:hover:border-primary transition-colors cursor-pointer bg-gray-50 dark:bg-gray-900">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
-                    <p class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Arrastra archivos aquí o haz clic para seleccionar</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Formatos soportados: PDF, DOCX, TXT (Máx. 10MB)</p>
-                    <input type="file" id="document" name="document" accept=".pdf,.docx,.txt" required class="hidden">
-                    <button type="button" onclick="document.getElementById('document').click()" class="px-6 py-2 bg-primary hover:bg-secondary text-white rounded-lg font-medium transition-all">
-                        Seleccionar Archivo
-                    </button>
-                </div>
-                
-                <div id="file-preview" class="hidden mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <div>
-                                <p class="font-medium text-gray-900 dark:text-gray-100" id="file-name"></p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400" id="file-size"></p>
-                            </div>
-                        </div>
-                        <button type="button" onclick="clearFile()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                
-                <button type="submit" id="upload-btn" class="hidden mt-4 w-full px-6 py-3 bg-primary hover:bg-secondary text-white rounded-lg font-medium transition-all flex items-center justify-center space-x-2">
-                    <span>Procesar Documento</span>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                </button>
-            </form>
-            
-            <div id="upload-status" class="mt-4"></div>
-        </div>
+<style>
+.drop-zone {
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  background: var(--bg-elevated);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--color-primary);
+  background: rgba(7,94,84,0.04);
+}
+.docs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.doc-card { transition: box-shadow 0.2s, transform 0.2s; }
+.doc-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+</style>
+
+<!-- Stats row -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;">
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+      <div class="stat-card-icon" style="background:rgba(124,58,237,0.1);">
+        <span style="color:#7c3aed;display:flex;width:1.25rem;height:1.25rem;">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+        </span>
+      </div>
     </div>
-    
-    <div class="lg:col-span-1">
-        <div class="bg-primary dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-white dark:text-gray-100">
-            <h3 class="text-lg font-bold mb-4">Información</h3>
-            <div class="space-y-3 text-sm">
-                <div class="flex items-start space-x-2">
-                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <p>Los documentos se procesan automáticamente y se dividen en chunks para la búsqueda vectorial.</p>
-                </div>
-                <div class="flex items-start space-x-2">
-                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <p>Formatos soportados: PDF para manuales, DOCX para políticas, TXT para FAQs.</p>
-                </div>
-                <div class="flex items-start space-x-2">
-                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <p>El procesamiento puede tardar unos segundos dependiendo del tamaño del archivo.</p>
-                </div>
-            </div>
-        </div>
+    <div class="stat-card-value" id="stat-total-docs">&mdash;</div>
+    <div class="stat-card-label">Documentos totales</div>
+  </div>
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+      <div class="stat-card-icon" style="background:rgba(37,99,235,0.1);">
+        <span style="color:#2563eb;display:flex;width:1.25rem;height:1.25rem;">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z"/><path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z"/><path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z"/></svg>
+        </span>
+      </div>
     </div>
+    <div class="stat-card-value" id="stat-total-vectors">&mdash;</div>
+    <div class="stat-card-label">Vectores indexados</div>
+  </div>
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+      <div class="stat-card-icon" style="background:rgba(22,163,74,0.1);">
+        <span style="color:#16a34a;display:flex;width:1.25rem;height:1.25rem;">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </span>
+      </div>
+    </div>
+    <div class="stat-card-value" id="stat-total-size">&mdash;</div>
+    <div class="stat-card-label">Espacio usado</div>
+  </div>
 </div>
 
-<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-            <svg class="w-6 h-6 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            Documentos Indexados
-        </h2>
-        <button onclick="loadDocuments()" class="text-primary hover:text-secondary transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-        </button>
+<!-- Upload + Info row -->
+<div style="display:grid;grid-template-columns:1fr 300px;gap:1.25rem;margin-bottom:1.5rem;">
+
+  <!-- Upload zone -->
+  <div class="card">
+    <div class="card-header">
+      <span style="font-size:0.9375rem;font-weight:600;color:var(--text-primary);">Subir nuevo documento</span>
     </div>
-    
-    <div id="documents-container" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-        <p class="text-gray-600 dark:text-gray-400">Cargando documentos...</p>
+    <div class="card-body">
+      <div id="drop-zone" class="drop-zone">
+        <svg width="40" height="40" viewBox="0 0 20 20" fill="currentColor" style="margin:0 auto 0.875rem;display:block;color:var(--text-muted);">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+        </svg>
+        <p style="font-size:0.9375rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.375rem;" id="drop-hint">Arrastra un archivo aqu&iacute; o haz clic para seleccionar</p>
+        <p style="font-size:0.8125rem;color:var(--text-muted);">PDF, DOCX, TXT &mdash; m&aacute;x. 10 MB</p>
+        <input type="file" id="file-input" name="document" accept=".pdf,.docx,.txt" style="display:none;">
+      </div>
+
+      <div id="file-preview" style="display:none;margin-top:0.875rem;padding:0.875rem;border-radius:var(--radius-lg);border:1px solid var(--border-color);align-items:center;gap:0.75rem;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="preview-filename"></div>
+          <div style="font-size:0.75rem;color:var(--text-muted);" id="preview-filesize"></div>
+        </div>
+      </div>
+
+      <div id="upload-progress" style="display:none;margin-top:0.875rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
+          <span style="font-size:0.8125rem;color:var(--text-secondary);">Subiendo&hellip;</span>
+          <span style="font-size:0.8125rem;font-weight:600;color:var(--text-primary);" id="upload-progress-pct">0%</span>
+        </div>
+        <div style="height:6px;border-radius:3px;background:var(--border-color);overflow:hidden;">
+          <div id="upload-progress-bar" style="height:100%;width:0%;background:var(--color-primary);border-radius:3px;transition:width 0.2s ease;"></div>
+        </div>
+      </div>
+
+      <button id="upload-btn" onclick="doUploadDocument()" class="btn btn-primary btn-md" style="width:100%;margin-top:1rem;" disabled>
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+        Subir documento
+      </button>
     </div>
+  </div>
+
+  <!-- Info card -->
+  <div class="card">
+    <div class="card-header">
+      <span style="font-size:0.9375rem;font-weight:600;color:var(--text-primary);">Informaci&oacute;n</span>
+    </div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:1rem;">
+      <div style="display:flex;align-items:flex-start;gap:0.625rem;">
+        <span class="badge badge-info" style="flex-shrink:0;margin-top:1px;">PDF</span>
+        <p style="font-size:0.8125rem;color:var(--text-secondary);">Manuales, gu&iacute;as, documentaci&oacute;n t&eacute;cnica</p>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:0.625rem;">
+        <span class="badge badge-info" style="flex-shrink:0;margin-top:1px;">DOCX</span>
+        <p style="font-size:0.8125rem;color:var(--text-secondary);">Pol&iacute;ticas, procedimientos, contratos</p>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:0.625rem;">
+        <span class="badge badge-neutral" style="flex-shrink:0;margin-top:1px;">TXT</span>
+        <p style="font-size:0.8125rem;color:var(--text-secondary);">FAQs, notas, texto plano</p>
+      </div>
+      <div class="divider"></div>
+      <p style="font-size:0.8125rem;color:var(--text-muted);line-height:1.6;">Los documentos se dividen en chunks y se indexan como vectores para b&uacute;squeda sem&aacute;ntica.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Documents grid -->
+<div class="card">
+  <div class="card-header">
+    <span style="font-size:0.9375rem;font-weight:600;color:var(--text-primary);">Documentos indexados</span>
+  </div>
+  <div class="card-body">
+    <div id="documents-container" style="text-align:center;padding:2rem;color:var(--text-muted);">
+      <div class="spinner spinner-lg" style="margin:0 auto 1rem;"></div>
+      <p>Cargando documentos&hellip;</p>
+    </div>
+  </div>
 </div>
 
 <!-- Modal para ver contenido del documento -->
-<div id="document-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                <svg class="w-6 h-6 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <span id="modal-document-name">Documento</span>
-            </h3>
-            <button onclick="closeDocumentModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        
-        <div id="modal-document-content" class="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900">
-            <div class="text-center py-12">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-                <p class="text-gray-600 dark:text-gray-400">Cargando contenido...</p>
-            </div>
-        </div>
-        
-        <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-            <button onclick="closeDocumentModal()" class="w-full px-6 py-3 bg-primary hover:bg-secondary text-white rounded-lg font-medium transition-all">
-                Cerrar
-            </button>
-        </div>
+<div id="document-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--bg-surface);border-radius:var(--radius-xl);box-shadow:var(--shadow-xl);max-width:56rem;width:100%;max-height:90vh;display:flex;flex-direction:column;border:1px solid var(--border-color);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-color);">
+      <h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin:0;" id="modal-document-name">Documento</h3>
+      <button onclick="closeDocumentModal()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0.25rem;" title="Cerrar">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </button>
     </div>
+    <div id="modal-document-content" style="flex:1;overflow-y:auto;padding:1.5rem;background:var(--bg-elevated);">
+      <div style="text-align:center;padding:3rem;"><div class="spinner spinner-lg" style="margin:0 auto 1rem;"></div><p style="color:var(--text-muted);">Cargando contenido&hellip;</p></div>
+    </div>
+    <div style="padding:1rem 1.5rem;border-top:1px solid var(--border-color);">
+      <button onclick="closeDocumentModal()" class="btn btn-primary btn-md" style="width:100%;">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <?php
@@ -150,358 +181,275 @@ $content = ob_get_clean();
 ob_start();
 ?>
 
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('document');
-const filePreview = document.getElementById('file-preview');
-const uploadBtn = document.getElementById('upload-btn');
+var _selectedFile = null;
 
-dropZone.addEventListener('click', () => fileInput.click());
+/* ── Drop zone ── */
+(function() {
+  var dropZone  = document.getElementById('drop-zone');
+  var fileInput = document.getElementById('file-input');
 
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('border-primary', 'bg-blue-50');
-});
+  if (dropZone) {
+    dropZone.addEventListener('click', function() { fileInput && fileInput.click(); });
+    dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('drag-over'); });
+    dropZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
+    });
+  }
+  if (fileInput) {
+    fileInput.addEventListener('change', function(e) { if (e.target.files[0]) handleFileSelect(e.target.files[0]); });
+  }
+})();
 
-dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('border-primary', 'bg-blue-50');
-});
-
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('border-primary', 'bg-blue-50');
-    
-    if (e.dataTransfer.files.length > 0) {
-        fileInput.files = e.dataTransfer.files;
-        displayFilePreview(e.dataTransfer.files[0]);
-    }
-});
-
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        displayFilePreview(e.target.files[0]);
-    }
-});
-
-function displayFilePreview(file) {
-    document.getElementById('file-name').textContent = file.name;
-    document.getElementById('file-size').textContent = formatBytes(file.size);
-    filePreview.classList.remove('hidden');
-    uploadBtn.classList.remove('hidden');
+function handleFileSelect(file) {
+  _selectedFile = file;
+  var preview  = document.getElementById('file-preview');
+  var fname    = document.getElementById('preview-filename');
+  var fsize    = document.getElementById('preview-filesize');
+  var btn      = document.getElementById('upload-btn');
+  var hint     = document.getElementById('drop-hint');
+  if (preview) preview.style.display = 'flex';
+  if (fname)   fname.textContent = file.name;
+  if (fsize)   fsize.textContent = formatBytes(file.size);
+  if (btn)     btn.disabled = false;
+  if (hint)    hint.textContent = 'Archivo seleccionado \u2014 clic en \u201cSubir documento\u201d para continuar';
 }
 
-function clearFile() {
-    fileInput.value = '';
-    filePreview.classList.add('hidden');
-    uploadBtn.classList.add('hidden');
+function doUploadDocument() {
+  if (!_selectedFile) return;
+  var btn         = document.getElementById('upload-btn');
+  var progressDiv = document.getElementById('upload-progress');
+  var progressBar = document.getElementById('upload-progress-bar');
+  var progressPct = document.getElementById('upload-progress-pct');
+
+  if (btn) btn.disabled = true;
+  if (progressDiv) progressDiv.style.display = '';
+
+  var formData = new FormData();
+  formData.append('document', _selectedFile);
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', BASE_PATH + '/api/upload.php');
+
+  xhr.upload.addEventListener('progress', function(e) {
+    if (e.lengthComputable) {
+      var pct = Math.round(e.loaded / e.total * 100);
+      if (progressBar) progressBar.style.width = pct + '%';
+      if (progressPct) progressPct.textContent = pct + '%';
+    }
+  });
+
+  xhr.addEventListener('load', function() {
+    try {
+      var data = JSON.parse(xhr.responseText);
+      if (data.success) {
+        showToast('Documento subido y procesado correctamente', 'success');
+        resetUploadUI();
+        loadDocuments();
+        loadStats();
+      } else {
+        throw new Error(data.error || 'Error al subir');
+      }
+    } catch(e) {
+      showToast('Error: ' + e.message, 'error');
+      if (btn) btn.disabled = false;
+      if (progressDiv) progressDiv.style.display = 'none';
+    }
+  });
+
+  xhr.addEventListener('error', function() {
+    showToast('Error de red al subir el archivo', 'error');
+    if (btn) btn.disabled = false;
+    if (progressDiv) progressDiv.style.display = 'none';
+  });
+
+  xhr.send(formData);
 }
 
-document.getElementById('upload-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    
-    if (!fileInput.files[0]) {
+function resetUploadUI() {
+  _selectedFile = null;
+  var fileInput   = document.getElementById('file-input');
+  var preview     = document.getElementById('file-preview');
+  var progressDiv = document.getElementById('upload-progress');
+  var progressBar = document.getElementById('upload-progress-bar');
+  var progressPct = document.getElementById('upload-progress-pct');
+  var btn         = document.getElementById('upload-btn');
+  var hint        = document.getElementById('drop-hint');
+  if (fileInput)   fileInput.value = '';
+  if (preview)     preview.style.display = 'none';
+  if (progressDiv) progressDiv.style.display = 'none';
+  if (progressBar) progressBar.style.width = '0%';
+  if (progressPct) progressPct.textContent = '0%';
+  if (btn)         btn.disabled = true;
+  if (hint)        hint.textContent = 'Arrastra un archivo aqu\u00ed o haz clic para seleccionar';
+}
+
+function loadStats() {
+  fetch(BASE_PATH + '/api/get-stats.php')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success || !data.stats) return;
+      var s = data.stats;
+      var el;
+      el = document.getElementById('stat-total-docs');    if (el) el.textContent = (s.documents && s.documents.total != null) ? s.documents.total : '\u2014';
+      el = document.getElementById('stat-total-vectors'); if (el) el.textContent = s.vectors != null ? s.vectors : '\u2014';
+      el = document.getElementById('stat-total-size');    if (el) el.textContent = (s.documents && s.documents.total_size != null) ? formatBytes(s.documents.total_size) : '\u2014';
+    })
+    .catch(function() {});
+}
+
+function loadDocuments() {
+  var container = document.getElementById('documents-container');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);"><div class="spinner spinner-lg" style="margin:0 auto 1rem;"></div><p>Cargando documentos\u2026</p></div>';
+
+  fetch(BASE_PATH + '/api/get-documents.php')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) throw new Error(data.error || 'Error');
+      var docs = data.documents || [];
+
+      if (docs.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:4rem 2rem;color:var(--text-muted);"><p style="font-size:1rem;font-weight:500;">No hay documentos a\u00fan</p><p style="font-size:0.875rem;margin-top:0.25rem;">Sube tu primer documento para comenzar</p></div>';
         return;
-    }
-    
-    formData.append('document', fileInput.files[0]);
-    
-    const statusDiv = document.getElementById('upload-status');
-    const uploadButton = uploadBtn;
-    
-    uploadButton.disabled = true;
-    uploadButton.innerHTML = '<span class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></span><span>Procesando...</span>';
-    
-    statusDiv.innerHTML = `
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
-            <div class="flex items-center">
-                <svg class="animate-spin h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                <span>Procesando documento y generando embeddings...</span>
-            </div>
-        </div>
-    `;
-    
-    try {
-        const response = await fetch(BASE_PATH + '/api/upload', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            statusDiv.innerHTML = `
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800">
-                    <div class="flex items-center">
-                        <svg class="h-5 w-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                        <div>
-                            <p class="font-medium">Documento procesado correctamente</p>
-                            <p class="text-sm mt-1">${data.document.chunks} chunks indexados en la base de conocimiento</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-            clearFile();
-            setTimeout(() => {
-                statusDiv.innerHTML = '';
-                loadDocuments();
-            }, 4000);
-        } else {
-            throw new Error(data.error);
-        }
-        
-    } catch (error) {
-        statusDiv.innerHTML = `
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-                <div class="flex items-center">
-                    <svg class="h-5 w-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                    </svg>
-                    <div>
-                        <p class="font-medium">Error al procesar documento</p>
-                        <p class="text-sm mt-1">${error.message}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    } finally {
-        uploadButton.disabled = false;
-        uploadButton.innerHTML = '<span>Procesar Documento</span><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-    }
-});
+      }
 
-async function loadDocuments() {
-    try {
-        const response = await fetch(BASE_PATH + '/api/documents');
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Error loading documents');
-        }
-        
-        const container = document.getElementById('documents-container');
-        
-        if (data.documents.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-12">
-                    <svg class="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    <p class="text-lg font-medium text-gray-500">No hay documentos indexados</p>
-                    <p class="text-sm text-gray-400 mt-2">Sube tu primer documento para comenzar</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
-        
-        data.documents.forEach(doc => {
-            const typeColors = {
-                'pdf': 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200',
-                'docx': 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200',
-                'txt': 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-            };
-            const typeColor = typeColors[doc.file_type] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
-            
-            const typeIcons = {
-                'pdf': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>',
-                'docx': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
-                'txt': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>'
-            };
-            const typeIcon = typeIcons[doc.file_type] || typeIcons['txt'];
-            
-            html += `
-                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-start space-x-3 mb-3">
-                        <div class="flex-shrink-0">
-                            <svg class="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                ${typeIcon}
-                            </svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="font-semibold text-gray-900 dark:text-gray-100 truncate" title="${doc.original_name}">${doc.original_name}</h4>
-                            <div class="flex items-center space-x-2 mt-1">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${typeColor}">
-                                    ${doc.file_type.toUpperCase()}
-                                </span>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">${formatBytes(doc.file_size)}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-2 mb-3">
-                        <div class="flex items-center justify-between text-sm">
-                            <span class="text-gray-600 dark:text-gray-400">Chunks indexados</span>
-                            <span class="font-semibold text-gray-900 dark:text-gray-100">${doc.chunk_count}</span>
-                        </div>
-                        <div class="flex items-center justify-between text-sm">
-                            <span class="text-gray-600 dark:text-gray-400">Fecha de subida</span>
-                            <span class="text-gray-500 dark:text-gray-400">${new Date(doc.created_at).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="viewDocument(${doc.id}, '${doc.original_name}')" class="px-3 py-2 bg-primary dark:bg-primary/80 hover:bg-secondary dark:hover:bg-secondary text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                            <span>Ver</span>
-                        </button>
-                        <button onclick="deleteDocument(${doc.id}, '${doc.original_name}')" class="px-3 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                            <span>Eliminar</span>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        
+      var FILE_COLORS = { pdf:'#ef4444', doc:'#2563eb', docx:'#2563eb', txt:'#64748b' };
+      var FILE_ICONS = {
+        pdf:  'M9 2a2 2 0 00-2 2v1H5a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2V4a2 2 0 00-2-2H9zm0 2h2v1H9V4zM5 7h10v11H5V7z',
+        doc:  'M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z',
+        txt:  'M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z'
+      };
+      var DEFAULT_ICON = 'M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z';
+
+      var html = '<div class="docs-grid">';
+      docs.forEach(function(doc) {
+        var ext   = (doc.original_name || doc.filename || '').split('.').pop().toLowerCase();
+        var name  = doc.original_name || doc.filename || 'Sin nombre';
+        var color = FILE_COLORS[ext] || '#7c3aed';
+        var icon  = FILE_ICONS[ext]  || DEFAULT_ICON;
+        var date  = doc.created_at ? new Date(doc.created_at).toLocaleDateString('es', {day:'2-digit',month:'short',year:'numeric'}) : '\u2014';
+        var size  = formatBytes(doc.file_size || 0);
+        var chunks = doc.chunk_count != null ? doc.chunk_count : 0;
+        var nameEsc = escapeHtml(name);
+
+        html += '<div class="doc-card card" style="position:relative;">';
+        html += '<div class="card-body" style="display:flex;flex-direction:column;gap:0.875rem;">';
+        html += '<div style="display:flex;align-items:center;gap:0.75rem;">';
+        html += '<div style="width:2.75rem;height:2.75rem;border-radius:var(--radius-lg);background:' + color + '18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
+        html += '<svg width="24" height="24" viewBox="0 0 20 20" fill="' + color + '"><path fill-rule="evenodd" d="' + icon + '" clip-rule="evenodd"/></svg>';
         html += '</div>';
-        container.innerHTML = html;
-        
-    } catch (error) {
-        document.getElementById('documents-container').innerHTML = `
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-center">
-                <svg class="w-12 h-12 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                </svg>
-                <p class="font-medium">Error al cargar documentos</p>
-                <p class="text-sm mt-1">${error.message}</p>
-            </div>
-        `;
-    }
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + nameEsc + '">' + nameEsc + '</div>';
+        html += '<div style="font-size:0.75rem;color:var(--text-muted);">' + ext.toUpperCase() + ' &middot; ' + size + '</div>';
+        html += '</div></div>';
+        html += '<div style="font-size:0.75rem;color:var(--text-muted);">' + chunks + ' chunks &middot; ' + date + '</div>';
+        html += '<div style="display:flex;gap:0.5rem;">';
+        html += '<button class="btn btn-secondary btn-sm doc-view-btn" style="flex:1;" data-id="' + doc.id + '" data-name="' + nameEsc + '">Ver contenido</button>';
+        html += '<button class="btn btn-danger btn-sm doc-del-btn" data-id="' + doc.id + '" data-name="' + nameEsc + '" title="Eliminar">';
+        html += '<svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>';
+        html += '</button></div>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+      container.innerHTML = html;
+
+      container.querySelectorAll('.doc-view-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          viewDocument(parseInt(this.dataset.id), this.dataset.name);
+        });
+      });
+      container.querySelectorAll('.doc-del-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          deleteDocument(parseInt(this.dataset.id), this.dataset.name);
+        });
+      });
+    })
+    .catch(function(err) {
+      container.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--color-error);">' + escapeHtml(err.message) + '</div>';
+    });
 }
 
-async function deleteDocument(id, name) {
-    if (!confirm(`¿Estás seguro de que quieres eliminar "${name}"?\n\nEsta acción eliminará el documento y todos sus vectores asociados.`)) {
+function viewDocument(id, name) {
+  var modal   = document.getElementById('document-modal');
+  var mName   = document.getElementById('modal-document-name');
+  var mBody   = document.getElementById('modal-document-content');
+  mName.textContent = name;
+  modal.style.display = 'flex';
+  mBody.innerHTML = '<div style="text-align:center;padding:3rem;"><div class="spinner spinner-lg" style="margin:0 auto 1rem;"></div><p style="color:var(--text-muted);">Cargando contenido\u2026</p></div>';
+
+  fetch(BASE_PATH + '/api/get-document-content.php?id=' + id)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) throw new Error(data.error || 'Error');
+      var chunks = data.chunks || [];
+      if (chunks.length === 0) {
+        mBody.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:2rem;">Sin contenido disponible</p>';
         return;
-    }
-    
-    const container = document.getElementById('documents-container');
-    const originalHTML = container.innerHTML;
-    
-    container.innerHTML = `
-        <div class="text-center py-12">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mb-4"></div>
-            <p class="text-gray-600">Eliminando documento...</p>
-        </div>
-    `;
-    
-    try {
-        const response = await fetch(`${BASE_PATH}/api/documents/${id}`, {
-            method: 'DELETE'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            loadDocuments();
-        } else {
-            throw new Error(data.error);
-        }
-        
-    } catch (error) {
-        container.innerHTML = originalHTML;
-        alert('Error al eliminar documento: ' + error.message);
-    }
-}
-
-function formatBytes(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-}
-
-async function viewDocument(id, name) {
-    const modal = document.getElementById('document-modal');
-    const modalName = document.getElementById('modal-document-name');
-    const modalContent = document.getElementById('modal-document-content');
-    
-    modalName.textContent = name;
-    modal.classList.remove('hidden');
-    
-    modalContent.innerHTML = `
-        <div class="text-center py-12">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-            <p class="text-gray-600 dark:text-gray-400">Cargando contenido del documento...</p>
-        </div>
-    `;
-    
-    try {
-        const response = await fetch(`${BASE_PATH}/api/documents/${id}/content`);
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Error al cargar el contenido');
-        }
-        
-        const chunks = data.chunks || [];
-        
-        if (chunks.length === 0) {
-            modalContent.innerHTML = `
-                <div class="text-center py-12">
-                    <svg class="w-20 h-20 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    <p class="text-lg font-medium text-gray-500 dark:text-gray-400">No hay contenido disponible</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '<div class="space-y-4">';
-        chunks.forEach((chunk, index) => {
-            html += `
-                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Fragmento ${index + 1} de ${chunks.length}</span>
-                        <span class="text-xs text-gray-400 dark:text-gray-500">${chunk.chunk_text.length} caracteres</span>
-                    </div>
-                    <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">${escapeHtml(chunk.chunk_text)}</p>
-                </div>
-            `;
-        });
-        html += '</div>';
-        
-        modalContent.innerHTML = html;
-        
-    } catch (error) {
-        modalContent.innerHTML = `
-            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-800 dark:text-red-400 text-center">
-                <svg class="w-12 h-12 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                </svg>
-                <p class="font-medium">Error al cargar el contenido</p>
-                <p class="text-sm mt-1">${error.message}</p>
-            </div>
-        `;
-    }
+      }
+      var html = '<div style="display:flex;flex-direction:column;gap:1rem;">';
+      chunks.forEach(function(chunk, i) {
+        html += '<div class="card"><div class="card-body">';
+        html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.5rem;">Fragmento ' + (i+1) + ' de ' + chunks.length + ' &middot; ' + chunk.chunk_text.length + ' caracteres</div>';
+        html += '<p style="font-size:0.8125rem;color:var(--text-secondary);white-space:pre-wrap;line-height:1.6;">' + escapeHtml(chunk.chunk_text) + '</p>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+      mBody.innerHTML = html;
+    })
+    .catch(function(err) {
+      mBody.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--color-error);">' + escapeHtml(err.message) + '</div>';
+    });
 }
 
 function closeDocumentModal() {
-    document.getElementById('document-modal').classList.add('hidden');
+  var modal = document.getElementById('document-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function deleteDocument(id, name) {
+  if (!confirm('\u00bfEliminar el documento "' + name + '"?\n\nEsta acci\u00f3n no se puede deshacer.')) return;
+  var container = document.getElementById('documents-container');
+  var backup = container.innerHTML;
+  container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);"><div class="spinner spinner-lg" style="margin:0 auto 1rem;"></div><p>Eliminando\u2026</p></div>';
+
+  fetch(BASE_PATH + '/api/delete-document.php?id=' + id, { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) throw new Error(data.error || 'Error');
+      showToast('Documento eliminado correctamente', 'success');
+      loadDocuments();
+      loadStats();
+    })
+    .catch(function(err) {
+      container.innerHTML = backup;
+      showToast('Error al eliminar: ' + err.message, 'error');
+    });
 }
 
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  var d = document.createElement('div');
+  d.textContent = String(text == null ? '' : text);
+  return d.innerHTML;
 }
 
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  var k = 1024, sizes = ['B','KB','MB','GB'];
+  var i = Math.floor(Math.log(bytes) / Math.log(k));
+  return (bytes / Math.pow(k, i)).toFixed(1).replace(/\.0$/, '') + ' ' + sizes[i];
+}
+
+/* ── Init ── */
 loadDocuments();
+loadStats();
 
 <?php
 $scripts = ob_get_clean();
+
+$extraScripts = '';
 
 require __DIR__ . '/layout.php';
 ?>

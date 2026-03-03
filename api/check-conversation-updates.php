@@ -1,16 +1,9 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+if (ob_get_level()) ob_end_clean();
+ob_start();
 
-use App\Core\Config;
-use App\Core\Database;
-use App\Core\Logger;
-
-$config = Config::load(__DIR__ . '/../config/config.php');
-$db = Database::getInstance(Config::get('database'));
-$logger = new Logger(__DIR__ . '/../logs');
-
-header('Content-Type: application/json');
+require_once __DIR__ . '/bootstrap.php';
 
 try {
     $lastCheck = $_GET['last_check'] ?? null;
@@ -26,6 +19,7 @@ try {
         [':last_check1' => $lastCheck, ':last_check2' => $lastCheck]
     );
 
+    ob_clean();
     echo json_encode([
         'success' => true,
         'has_updates' => count($updatedConversations) > 0,
@@ -37,8 +31,9 @@ try {
         $logger->error('Check Conversation Updates Error: ' . $e->getMessage());
     }
     http_response_code(500);
+    ob_clean();
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'Error al verificar actualizaciones'
     ]);
 }

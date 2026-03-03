@@ -15,8 +15,9 @@ class GoogleCalendarService
     private $calendarId;
     private $timezone;
     private $logger;
+    private $db;
 
-    public function __construct($accessToken, $calendarId, Logger $logger, $timezone = 'America/Bogota', $refreshToken = null, $clientId = null, $clientSecret = null)
+    public function __construct($accessToken, $calendarId, Logger $logger, $timezone = 'America/Bogota', $refreshToken = null, $clientId = null, $clientSecret = null, $db = null)
     {
         $this->accessToken = $accessToken;
         $this->refreshToken = $refreshToken;
@@ -25,6 +26,7 @@ class GoogleCalendarService
         $this->calendarId = $calendarId;
         $this->timezone = $timezone;
         $this->logger = $logger;
+        $this->db = $db;
 
         $this->client = new Client([
             'base_uri' => 'https://www.googleapis.com/calendar/v3/',
@@ -33,7 +35,7 @@ class GoogleCalendarService
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ],
-            'verify' => false
+            'verify' => false // Deshabilitado para desarrollo local
         ]);
     }
 
@@ -44,7 +46,7 @@ class GoogleCalendarService
         }
 
         try {
-            $tokenClient = new Client(['verify' => false]);
+            $tokenClient = new Client(['verify' => false]); // Deshabilitado para desarrollo local
             $response = $tokenClient->post('https://oauth2.googleapis.com/token', [
                 'form_params' => [
                     'client_id' => $this->clientId,
@@ -70,6 +72,23 @@ class GoogleCalendarService
                 ]);
                 
                 $this->logger->info('Access token refreshed successfully');
+                
+                if ($this->db) {
+                    try {
+                        $cipherKey = getenv('APP_CIPHER_KEY');
+                        if ($cipherKey) {
+                            $encryption = new \App\Services\EncryptionService($cipherKey);
+                            $credService = new \App\Services\CredentialService($this->db, $encryption);
+                            $credService->saveGoogleOAuthCredentials([
+                                'access_token' => $this->accessToken
+                            ]);
+                            $this->logger->info('Refreshed access token persisted to google_oauth_credentials (encrypted)');
+                        }
+                    } catch (\Exception $credEx) {
+                        $this->logger->error('Failed to persist encrypted token: ' . $credEx->getMessage());
+                    }
+                }
+                
                 return true;
             }
             
@@ -100,7 +119,9 @@ class GoogleCalendarService
             return $this->makeRequest('get', "calendars/{$this->calendarId}/events", [
                 'query' => [
                     'maxResults' => $maxResults,
-                    'timeMin' => date('c')
+                    'timeMin' => date('c'),
+                    'singleEvents' => 'true',
+                    'orderBy' => 'startTime'
                 ]
             ]);
         } catch (\Exception $e) {
@@ -112,13 +133,15 @@ class GoogleCalendarService
     public function checkAvailability($date, $startHour, $endHour)
     {
         try {
-            $timeMin = "{$date}T{$startHour}:00:00";
-            $timeMax = "{$date}T{$endHour}:00:00";
+            $timeMin = (new \DateTime("{$date} {$startHour}:00:00", new \DateTimeZone($this->timezone)))->format(\DateTime::RFC3339);
+            $timeMax = (new \DateTime("{$date} {$endHour}:00:00", new \DateTimeZone($this->timezone)))->format(\DateTime::RFC3339);
             
             $data = $this->makeRequest('get', "calendars/{$this->calendarId}/events", [
                 'query' => [
                     'timeMin' => $timeMin,
-                    'timeMax' => $timeMax
+                    'timeMax' => $timeMax,
+                    'singleEvents' => 'true',
+                    'orderBy' => 'startTime'
                 ]
             ]);
             
@@ -129,9 +152,45 @@ class GoogleCalendarService
         }
     }
 
-    public function createEvent($summary, $description, $startDateTime, $endDateTime, $attendeeEmail = null)
+    public function validateDateNotPast($dateString)
+    {
+        $today = new \DateTime('now', new \DateTimeZone($this->timezone));
+        $today->setTime(0, 0, 0);
+        $requestedDate = new \DateTime($dateString, new \DateTimeZone($this->timezone));
+        $requestedDate->setTime(0, 0, 0);
+        
+        if ($requestedDate < $today) {
+            return [
+                'valid' => false,
+                'message' => 'Esa fecha ya pasó. Por favor indica una fecha futura válida.'
+            ];
+        }
+        
+        return ['valid' => true];
+    }
+
+    public function validateMinAdvanceHours($date, $time, $minAdvanceHours)
+    {
+        $requestedDateTime = new \DateTime("{$date} {$time}", new \DateTimeZone($this->timezone));
+        $now = new \DateTime('now', new \DateTimeZone($this->timezone));
+        $minDateTime = clone $now;
+        $minDateTime->modify("+{$minAdvanceHours} hours");
+        
+        if ($requestedDateTime < $minDateTime) {
+            return [
+                'valid' => false,
+                'message' => "Las citas requieren al menos {$minAdvanceHours} hora(s) de antelación. Por favor elige un horario posterior."
+            ];
+        }
+        
+        return ['valid' => true];
+    }
+
+    public function createEvent($summary, $description, $startDateTime, $endDateTime, $attendeeEmail = null, $calendarConfig = null)
     {
         try {
+            $reminders = $this->buildReminders($calendarConfig);
+            
             $event = [
                 'summary' => $summary,
                 'description' => $description,
@@ -143,13 +202,7 @@ class GoogleCalendarService
                     'dateTime' => $endDateTime,
                     'timeZone' => $this->timezone
                 ],
-                'reminders' => [
-                    'useDefault' => false,
-                    'overrides' => [
-                        ['method' => 'email', 'minutes' => 24 * 60],
-                        ['method' => 'popup', 'minutes' => 30]
-                    ]
-                ]
+                'reminders' => $reminders
             ];
 
             if ($attendeeEmail) {
@@ -186,28 +239,61 @@ class GoogleCalendarService
         ];
         
         foreach ($months as $monthName => $monthNum) {
+            // With year: "5 de marzo del 2026"
             if (preg_match('/(\d{1,2})\s+de\s+' . $monthName . '\s+(?:del?\s+)?(\d{4})/i', $dateText, $matches)) {
                 $day = intval($matches[1]);
                 $year = intval($matches[2]);
-                
                 if (checkdate($monthNum, $day, $year)) {
                     return sprintf('%04d-%02d-%02d', $year, $monthNum, $day);
                 }
             }
+            // Without year: "5 de marzo" — use current year, or next year if date already passed
+            if (preg_match('/(\d{1,2})\s+de\s+' . $monthName . '(?:\s|$)/i', $dateText, $matches)) {
+                $day = intval($matches[1]);
+                $tz = new \DateTimeZone($this->timezone);
+                $year = (int)(new \DateTime('now', $tz))->format('Y');
+                if (!checkdate($monthNum, $day, $year)) continue;
+                $candidate = new \DateTime("{$year}-{$monthNum}-{$day}", $tz);
+                $today = new \DateTime('now', $tz);
+                if ($candidate < $today) {
+                    $candidate->modify('+1 year');
+                }
+                return $candidate->format('Y-m-d');
+            }
         }
         
         $textLower = mb_strtolower($dateText);
+        $tz = new \DateTimeZone($this->timezone);
+        if (strpos($textLower, 'pasado mañana') !== false) {
+            return (new \DateTime('+2 days', $tz))->format('Y-m-d');
+        }
         if (strpos($textLower, 'mañana') !== false) {
-            return date('Y-m-d', strtotime('+1 day'));
+            return (new \DateTime('+1 day', $tz))->format('Y-m-d');
         }
         if (strpos($textLower, 'hoy') !== false) {
-            return date('Y-m-d');
-        }
-        if (strpos($textLower, 'pasado mañana') !== false) {
-            return date('Y-m-d', strtotime('+2 days'));
+            return (new \DateTime('now', $tz))->format('Y-m-d');
         }
         
         return null;
+    }
+
+    public function getUpcomingEvents(string $timeMin, string $timeMax, int $maxResults = 10): array
+    {
+        try {
+            $data = $this->makeRequest('get', "calendars/{$this->calendarId}/events", [
+                'query' => [
+                    'timeMin'      => $timeMin,
+                    'timeMax'      => $timeMax,
+                    'maxResults'   => $maxResults,
+                    'singleEvents' => 'true',
+                    'orderBy'      => 'startTime'
+                ]
+            ]);
+            return $data['items'] ?? [];
+        } catch (\Exception $e) {
+            $this->logger->error('getUpcomingEvents error: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     public function checkEventOverlap($date, $startTime, $endTime)
@@ -219,7 +305,9 @@ class GoogleCalendarService
             $data = $this->makeRequest('get', "calendars/{$this->calendarId}/events", [
                 'query' => [
                     'timeMin' => $timeMin,
-                    'timeMax' => $timeMax
+                    'timeMax' => $timeMax,
+                    'singleEvents' => 'true',
+                    'orderBy' => 'startTime'
                 ]
             ]);
             
@@ -247,7 +335,9 @@ class GoogleCalendarService
                 'query' => [
                     'timeMin' => $timeMin,
                     'timeMax' => $timeMax,
-                    'maxResults' => $maxResults
+                    'maxResults' => $maxResults,
+                    'singleEvents' => 'true',
+                    'orderBy' => 'startTime'
                 ]
             ]);
         } catch (\Exception $e) {
@@ -295,26 +385,14 @@ class GoogleCalendarService
             $datetime = new \DateTime($date . ' ' . $time, new \DateTimeZone($this->timezone));
             $dayOfWeek = strtolower($datetime->format('l'));
             
-            $dayMap = [
-                'monday' => 'monday',
-                'tuesday' => 'tuesday',
-                'wednesday' => 'wednesday',
-                'thursday' => 'thursday',
-                'friday' => 'friday',
-                'saturday' => 'saturday',
-                'sunday' => 'sunday'
-            ];
-            
-            $day = $dayMap[$dayOfWeek] ?? null;
-            
-            if (!$day || !isset($businessHours[$day]) || $businessHours[$day] === null) {
+            if (!isset($businessHours[$dayOfWeek]) || $businessHours[$dayOfWeek] === null) {
                 return [
                     'valid' => false,
                     'reason' => 'No atendemos ese día'
                 ];
             }
             
-            $hours = $businessHours[$day];
+            $hours = $businessHours[$dayOfWeek];
             $startTime = $hours['start'];
             $endTime = $hours['end'];
             
@@ -334,23 +412,59 @@ class GoogleCalendarService
         }
     }
 
+    private function buildReminders($calendarConfig = null)
+    {
+        $overrides = [];
+        
+        if ($calendarConfig && isset($calendarConfig['reminders'])) {
+            $rem = $calendarConfig['reminders'];
+            if (!empty($rem['email']['enabled'])) {
+                $overrides[] = ['method' => 'email', 'minutes' => (int)($rem['email']['minutes_before'] ?? 1440)];
+            }
+            if (!empty($rem['popup']['enabled'])) {
+                $overrides[] = ['method' => 'popup', 'minutes' => (int)($rem['popup']['minutes_before'] ?? 30)];
+            }
+        }
+        
+        if (empty($overrides)) {
+            return ['useDefault' => true];
+        }
+        
+        return [
+            'useDefault' => false,
+            'overrides' => $overrides
+        ];
+    }
+
+    public function deleteEvent(string $eventId): bool
+    {
+        try {
+            $this->makeRequest('delete', "calendars/{$this->calendarId}/events/{$eventId}");
+            $this->logger->info('Event deleted successfully', ['event_id' => $eventId]);
+            return true;
+        } catch (\Exception $e) {
+            $this->logger->error('Error deleting event: ' . $e->getMessage(), ['event_id' => $eventId]);
+            throw $e;
+        }
+    }
+
     public function formatEventsForWhatsApp($events)
     {
         if (empty($events)) {
             return "No hay eventos próximos agendados.";
         }
 
-        $message = "📅 *Próximos eventos:*\n\n";
+        $message = "*Próximos eventos:*\n\n";
         
         foreach ($events as $index => $event) {
             $start = new \DateTime($event['start']['dateTime'] ?? $event['start']['date']);
             $summary = $event['summary'] ?? 'Sin título';
             
             $message .= ($index + 1) . ". *" . $summary . "*\n";
-            $message .= "   📆 " . $start->format('d/m/Y H:i') . "\n";
+            $message .= "   " . $start->format('d/m/Y H:i') . "\n";
             
             if (isset($event['description'])) {
-                $message .= "   📝 " . substr($event['description'], 0, 50) . "...\n";
+                $message .= "   " . substr($event['description'], 0, 50) . "...\n";
             }
             
             $message .= "\n";

@@ -10,17 +10,45 @@ use App\Services\OpenAIService;
 use App\Services\VectorSearchService;
 use App\Services\RAGService;
 use App\Services\ConversationService;
+use App\Services\EncryptionService;
+use App\Services\CredentialService;
+use App\Services\CalendarIntentService;
+use App\Services\ClassicBotService;
+use App\Handlers\CalendarFlowHandler;
 
 header('Content-Type: application/json');
 
-function getCalendarService($logger, $db) {
-    $calendarConfig = \App\Helpers\CalendarConfigHelper::loadFromDatabase($db);
+function handleInsufficientFunds($db, $e) {
+    if (strpos($e->getMessage(), 'INSUFFICIENT_FUNDS') !== false) {
+        $db->query(
+            "INSERT INTO settings (setting_key, setting_value) VALUES ('openai_status', 'insufficient_funds') 
+             ON DUPLICATE KEY UPDATE setting_value = 'insufficient_funds'",
+            []
+        );
+        $db->query(
+            "INSERT INTO settings (setting_key, setting_value) VALUES ('openai_error_timestamp', NOW()) 
+             ON DUPLICATE KEY UPDATE setting_value = NOW()",
+            []
+        );
+        return true;
+    }
+    return false;
+}
+
+function getCalendarService($logger, $db, $credentialService = null, $calendarConfig = null) {
+    if ($calendarConfig === null) {
+        $calendarConfig = \App\Helpers\CalendarConfigHelper::loadFromDatabase($db);
+    }
     
     if (!$calendarConfig['enabled']) {
         return null;
     }
     
-    $credentials = $calendarConfig['credentials'];
+    if ($credentialService) {
+        $credentials = $credentialService->getGoogleOAuthCredentials();
+    } else {
+        $credentials = $calendarConfig['credentials'];
+    }
     
     if (empty($credentials['access_token'])) {
         return null;
@@ -33,19 +61,36 @@ function getCalendarService($logger, $db) {
         $calendarConfig['timezone'],
         $credentials['refresh_token'],
         $credentials['client_id'],
-        $credentials['client_secret']
+        $credentials['client_secret'],
+        $db
     );
 }
 
 try {
     $config = Config::load(__DIR__ . '/config/config.php');
+    date_default_timezone_set(Config::get('app.timezone') ?: 'America/Bogota');
     $logger = new Logger(__DIR__ . '/logs');
+    $db = Database::getInstance(Config::get('database'));
+    
+    $credentialService = null;
+    try {
+        $encryption = new EncryptionService();
+        $credentialService = new CredentialService($db, $encryption);
+    } catch (\Exception $e) {
+        $logger->warning('CredentialService not available, using config fallback: ' . $e->getMessage());
+    }
     
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $mode = $_GET['hub_mode'] ?? '';
         $token = $_GET['hub_verify_token'] ?? '';
         $challenge = $_GET['hub_challenge'] ?? '';
-        $verifyToken = Config::get('whatsapp.verify_token');
+        
+        if ($credentialService && $credentialService->hasWhatsAppCredentials()) {
+            $waCreds = $credentialService->getWhatsAppCredentials();
+            $verifyToken = $waCreds['verify_token'];
+        } else {
+            $verifyToken = Config::get('whatsapp.verify_token');
+        }
         
         if ($mode === 'subscribe' && $token === $verifyToken) {
             echo $challenge;
@@ -58,32 +103,96 @@ try {
     }
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $input = file_get_contents('php://input');
-        $payload = json_decode($input, true);
+        $rawBody = file_get_contents('php://input');
         
-        $logger->info('Webhook received', ['payload' => $payload]);
+        if ($credentialService && $credentialService->hasWhatsAppCredentials()) {
+            $waCreds = $credentialService->getWhatsAppCredentials();
+            $appSecret = $waCreds['app_secret'];
+        } else {
+            $appSecret = Config::get('whatsapp.app_secret');
+        }
+        if ($appSecret) {
+            $signature = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
+            $expected = 'sha256=' . hash_hmac('sha256', $rawBody, $appSecret);
+            if (!hash_equals($expected, $signature)) {
+                http_response_code(401);
+                exit('Unauthorized');
+            }
+        } else {
+            $logger->warning('Webhook signature validation SKIPPED - no app_secret configured');
+        }
         
-        $db = Database::getInstance(Config::get('database'));
+        $payload = json_decode($rawBody, true);
         
-        $whatsapp = new WhatsAppService(
-            Config::get('whatsapp.access_token'),
-            Config::get('whatsapp.phone_number_id'),
-            Config::get('whatsapp.api_version'),
-            $logger
-        );
+        if ($credentialService && $credentialService->hasWhatsAppCredentials()) {
+            $waCreds = $waCreds ?? $credentialService->getWhatsAppCredentials();
+            $whatsapp = new WhatsAppService(
+                $waCreds['access_token'],
+                $waCreds['phone_number_id'],
+                Config::get('whatsapp.api_version'),
+                $logger
+            );
+        } else {
+            $whatsapp = new WhatsAppService(
+                Config::get('whatsapp.access_token'),
+                Config::get('whatsapp.phone_number_id'),
+                Config::get('whatsapp.api_version'),
+                $logger
+            );
+        }
 
-        $openai = new OpenAIService(
-            Config::get('openai.api_key'),
-            Config::get('openai.model'),
-            Config::get('openai.embedding_model'),
-            $logger
-        );
+        $openaiTemperature = 0.7;
+        $openaiMaxTokens = 500;
+
+        if ($credentialService && $credentialService->hasOpenAICredentials()) {
+            $oaiCreds = $credentialService->getOpenAICredentials();
+            $openai = new OpenAIService(
+                $oaiCreds['api_key'],
+                $oaiCreds['model'],
+                $oaiCreds['embedding_model'],
+                $logger
+            );
+            $openaiTemperature = $oaiCreds['temperature'] ?? 0.7;
+            $openaiMaxTokens = $oaiCreds['max_tokens'] ?? 500;
+        } else {
+            $openai = new OpenAIService(
+                Config::get('openai.api_key'),
+                Config::get('openai.model'),
+                Config::get('openai.embedding_model'),
+                $logger
+            );
+        }
         
         $messageData = $whatsapp->parseWebhookPayload($payload);
         
         if (!$messageData) {
             http_response_code(200);
             echo json_encode(['status' => 'ignored']);
+            exit;
+        }
+
+        $logger->info('Webhook received', [
+            'type' => $messageData['type'],
+            'from_hash' => substr(hash('sha256', $messageData['from'] ?? ''), 0, 12),
+            'timestamp' => $messageData['timestamp'] ?? time()
+        ]);
+
+        $unsupportedTypes = ['image', 'document', 'location', 'video', 'sticker', 'contacts'];
+        if (in_array($messageData['type'], $unsupportedTypes)) {
+            $conversationService = new ConversationService($db);
+            $conversation = $conversationService->getOrCreateConversation(
+                $messageData['from'],
+                $messageData['contact_name']
+            );
+            $unsupportedMsg = "Lo siento, por el momento solo puedo procesar mensajes de *texto* y *audio*. Por favor, envíame tu consulta en un mensaje de texto.";
+            $whatsapp->sendMessage($messageData['from'], $unsupportedMsg);
+            $conversationService->addMessage($conversation['id'], 'bot', $unsupportedMsg, null, null, 1.0);
+            $db->query(
+                'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                [':id' => $conversation['id']]
+            );
+            http_response_code(200);
+            echo json_encode(['status' => 'unsupported_media_type']);
             exit;
         }
 
@@ -120,7 +229,7 @@ try {
                 $logger->error('Audio processing error: ' . $e->getMessage());
                 $whatsapp->sendMessage($messageData['from'], 'Lo siento, no pude procesar el audio. Por favor, envía un mensaje de texto.');
                 http_response_code(200);
-                echo json_encode(['status' => 'audio_error', 'error' => $e->getMessage()]);
+                echo json_encode(['status' => 'audio_error']);
                 exit;
             }
         }
@@ -174,457 +283,22 @@ try {
             $whatsapp->markAsRead($messageData['message_id']);
         }
         
-        $calendarConfig = \App\Helpers\CalendarConfigHelper::loadFromDatabase($db);
-        $calendarAction = null;
-        
-        if ($calendarConfig['enabled']) {
-            $calendarKeywords = $calendarConfig['keywords'];
-            $messageLower = mb_strtolower($messageData['text']);
-            
-            foreach ($calendarKeywords as $action => $keywords) {
-                foreach ($keywords as $keyword) {
-                    if (strpos($messageLower, $keyword) !== false) {
-                        $calendarAction = $action;
-                        break 2;
-                    }
-                }
-            }
-        }
-
-        $eventState = $conversation['event_creation_state'] ?? null;
-        $eventAttempts = intval($conversation['event_creation_attempts'] ?? 0);
-        
-        if ($eventState === 'waiting_date') {
-            $calendar = getCalendarService($logger, $db);
-            if (!$calendar) {
-                $response = "Lo siento, no puedo agendar citas en este momento. Por favor contáctanos directamente.";
-                $whatsapp->sendMessage($messageData['from'], $response);
-                $conversationService->addMessage($conversation['id'], 'bot', $response, null, null, 1.0);
-                $db->query(
-                    'UPDATE conversations SET event_creation_state = NULL, event_creation_attempts = 0, event_creation_data = NULL WHERE id = :id',
-                    [':id' => $conversation['id']]
-                );
-                http_response_code(200);
-                echo json_encode(['status' => 'calendar_disabled']);
-                exit;
-            }
-            
-            $validDate = $calendar->validateDateFormat($messageData['text']);
-            
-            if ($validDate) {
-                $eventData = json_decode($conversation['event_creation_data'], true);
-                $eventData['date'] = $validDate;
-                
-                $response = "Perfecto. ¿A qué hora? (Ejemplo: 14:00 o 3pm)";
-                
-                $db->query(
-                    'UPDATE conversations SET event_creation_state = :state, event_creation_attempts = 0, event_creation_data = :data WHERE id = :id',
-                    [
-                        ':state' => 'waiting_time',
-                        ':data' => json_encode($eventData),
-                        ':id' => $conversation['id']
-                    ]
-                );
-                
-                $whatsapp->sendMessage($messageData['from'], $response);
-                $conversationService->addMessage($conversation['id'], 'bot', $response, null, null, 1.0);
-                
-                http_response_code(200);
-                echo json_encode(['status' => 'event_flow_waiting_time']);
-                exit;
-            } else {
-                $eventAttempts++;
-                
-                if ($eventAttempts >= 2) {
-                    $response = "Lo siento, no he podido entender el formato de la fecha después de varios intentos.\n\n";
-                    $response .= "¿Hay algo más en lo que pueda ayudarte?";
-                    
-                    $db->query(
-                        'UPDATE conversations SET event_creation_state = NULL, event_creation_attempts = 0, event_creation_data = NULL WHERE id = :id',
-                        [':id' => $conversation['id']]
-                    );
-                } else {
-                    $response = "No entiendo esa fecha. Intenta con: 25/02/2026 o mañana";
-                    
-                    $db->query(
-                        'UPDATE conversations SET event_creation_attempts = :attempts WHERE id = :id',
-                        [
-                            ':attempts' => $eventAttempts,
-                            ':id' => $conversation['id']
-                        ]
-                    );
-                }
-                
-                $whatsapp->sendMessage($messageData['from'], $response);
-                $conversationService->addMessage($conversation['id'], 'bot', $response, null, null, 1.0);
-                
-                http_response_code(200);
-                echo json_encode(['status' => 'event_flow_invalid_date']);
-                exit;
-            }
-        }
-        
-        if ($eventState === 'waiting_time') {
-            $timePattern = '/(\d{1,2}):?(\d{2})?\s*(am|pm)?/i';
-            $validTime = null;
-            
-            if (preg_match($timePattern, $messageData['text'], $matches)) {
-                $hour = intval($matches[1]);
-                $minute = isset($matches[2]) && $matches[2] !== '' ? intval($matches[2]) : 0;
-                $ampm = isset($matches[3]) ? strtolower($matches[3]) : null;
-                
-                if ($ampm === 'pm' && $hour < 12) {
-                    $hour += 12;
-                } elseif ($ampm === 'am' && $hour === 12) {
-                    $hour = 0;
-                }
-                
-                if ($hour >= 0 && $hour < 24 && $minute >= 0 && $minute < 60) {
-                    $validTime = sprintf('%02d:%02d', $hour, $minute);
-                }
-            }
-            
-            if ($validTime) {
-                $eventData = json_decode($conversation['event_creation_data'], true);
-                $eventData['time'] = $validTime;
-                
-                try {
-                    $calendar = getCalendarService($logger, $db);
-                    $calendarConfig = \App\Helpers\CalendarConfigHelper::loadFromDatabase($db);
-                    
-                    if (!$calendar) {
-                        throw new \Exception('Calendar service not available');
-                    }
-                    
-                    $timezone = new \DateTimeZone($calendarConfig['timezone']);
-                    $startDateTime = new \DateTime($eventData['date'] . ' ' . $validTime, $timezone);
-                    $endDateTime = clone $startDateTime;
-                    $endDateTime->modify('+' . $calendarConfig['default_duration_minutes'] . ' minutes');
-                    
-                    $businessValidation = $calendar->validateBusinessHours(
-                        $eventData['date'],
-                        $validTime,
-                        $calendarConfig['business_hours']
-                    );
-                    
-                    if (!$businessValidation['valid']) {
-                        $response = $businessValidation['reason'];
-                        $db->query(
-                            'UPDATE conversations SET event_creation_state = NULL, event_creation_attempts = 0, event_creation_data = NULL WHERE id = :id',
-                            [':id' => $conversation['id']]
-                        );
-                        $whatsapp->sendMessage($messageData['from'], $response);
-                        $conversationService->addMessage($conversation['id'], 'bot', $response, null, null, 1.0);
-                        http_response_code(200);
-                        echo json_encode(['status' => 'outside_business_hours']);
-                        exit;
-                    }
-                    
-                    $overlapCheck = $calendar->checkEventOverlap(
-                        $eventData['date'],
-                        $validTime,
-                        $endDateTime->format('H:i')
-                    );
-                    
-                    if ($overlapCheck['overlap']) {
-                        $response = "Lo siento, ya hay una cita agendada en ese horario.\n\n";
-                        $response .= "Por favor elige otro horario.";
-                        
-                        $eventAttempts++;
-                        $db->query(
-                            'UPDATE conversations SET event_creation_attempts = :attempts WHERE id = :id',
-                            [':attempts' => $eventAttempts, ':id' => $conversation['id']]
-                        );
-                        
-                        $whatsapp->sendMessage($messageData['from'], $response);
-                        $conversationService->addMessage($conversation['id'], 'bot', $response, null, null, 1.0);
-                        http_response_code(200);
-                        echo json_encode(['status' => 'event_overlap']);
-                        exit;
-                    }
-                    
-                    $eventsCount = $calendar->countEventsForDay($eventData['date']);
-                    if ($eventsCount >= $calendarConfig['max_events_per_day']) {
-                        $response = "Lo siento, ya se alcanzó el máximo de citas para ese día.\n\n";
-                        $response .= "Por favor elige otro día.";
-                        
-                        $db->query(
-                            'UPDATE conversations SET event_creation_state = NULL, event_creation_attempts = 0, event_creation_data = NULL WHERE id = :id',
-                            [':id' => $conversation['id']]
-                        );
-                        
-                        $whatsapp->sendMessage($messageData['from'], $response);
-                        $conversationService->addMessage($conversation['id'], 'bot', $response, null, null, 1.0);
-                        http_response_code(200);
-                        echo json_encode(['status' => 'max_events_reached']);
-                        exit;
-                    }
-                    
-                    $confirmationDate = $startDateTime->format('d/m/Y');
-                    $confirmationTime = $startDateTime->format('H:i');
-                    
-                    $event = $calendar->createEvent(
-                        $eventData['title'],
-                        'Creado desde WhatsApp por ' . $messageData['contact_name'],
-                        $startDateTime->format(\DateTime::RFC3339),
-                        $endDateTime->format(\DateTime::RFC3339)
-                    );
-                    
-                    $response = "✓ Cita confirmada\n";
-                    $response .= $confirmationDate . " a las " . $confirmationTime;
-                    $response .= "\nNos vemos!";
-                    
-                    $db->query(
-                        'UPDATE conversations SET event_creation_state = NULL, event_creation_attempts = 0, event_creation_data = NULL WHERE id = :id',
-                        [':id' => $conversation['id']]
-                    );
-                } catch (\Exception $e) {
-                    $logger->error('Error creating event: ' . $e->getMessage());
-                    $response = "Error al crear el evento. Por favor intenta de nuevo más tarde.";
-                    
-                    $db->query(
-                        'UPDATE conversations SET event_creation_state = NULL, event_creation_attempts = 0, event_creation_data = NULL WHERE id = :id',
-                        [':id' => $conversation['id']]
-                    );
-                }
-                
-                $whatsapp->sendMessage($messageData['from'], $response);
-                $conversationService->addMessage($conversation['id'], 'bot', $response, null, null, 1.0);
-                
-                http_response_code(200);
-                echo json_encode(['status' => 'event_created']);
-                exit;
-            } else {
-                $eventAttempts++;
-                
-                if ($eventAttempts >= 2) {
-                    $response = "Lo siento, no he podido entender la hora después de varios intentos.\n\n";
-                    $response .= "¿Hay algo más en lo que pueda ayudarte?";
-                    
-                    $db->query(
-                        'UPDATE conversations SET event_creation_state = NULL, event_creation_attempts = 0, event_creation_data = NULL WHERE id = :id',
-                        [':id' => $conversation['id']]
-                    );
-                } else {
-                    $response = "No entiendo esa hora. Intenta: 14:00 o 3pm";
-                    
-                    $db->query(
-                        'UPDATE conversations SET event_creation_attempts = :attempts WHERE id = :id',
-                        [
-                            ':attempts' => $eventAttempts,
-                            ':id' => $conversation['id']
-                        ]
-                    );
-                }
-                
-                $whatsapp->sendMessage($messageData['from'], $response);
-                $conversationService->addMessage($conversation['id'], 'bot', $response, null, null, 1.0);
-                
-                http_response_code(200);
-                echo json_encode(['status' => 'event_flow_invalid_time']);
-                exit;
-            }
-        }
-        
-        if ($calendarAction) {
-            $logger->info('Calendar request detected', ['action' => $calendarAction]);
-            
-            $calendar = getCalendarService($logger, $db);
-            
-            if (!$calendar) {
-                $response = "Lo siento, no puedo gestionar citas en este momento. Por favor contáctanos para ayudarte.";
-                
-                $whatsapp->sendMessage($messageData['from'], $response);
-                $conversationService->addMessage($conversation['id'], 'bot', $response, null, null, 1.0);
-                
-                http_response_code(200);
-                echo json_encode(['status' => 'calendar_not_configured']);
-                exit;
-            }
-            
-            try {
-                $response = '';
-                $messageLower = mb_strtolower($messageData['text']);
-                
-                if ($calendarAction === 'list') {
-                    $timezone = new \DateTimeZone($calendarConfig['timezone']);
-                    
-                    if (preg_match('/mañana/i', $messageLower)) {
-                        $tomorrow = (new \DateTime('tomorrow', $timezone))->format('Y-m-d');
-                        $allEvents = $calendar->getEventsForDay($tomorrow);
-                        $contactName = $messageData['contact_name'];
-                        $filteredItems = [];
-                        
-                        if (!empty($allEvents['items'])) {
-                            foreach ($allEvents['items'] as $event) {
-                                $summary = $event['summary'] ?? '';
-                                if (stripos($summary, $contactName) !== false) {
-                                    $filteredItems[] = $event;
-                                }
-                            }
-                        }
-                        
-                        $events = ['items' => $filteredItems];
-                        $response = "Citas para mañana:\n\n";
-                    } elseif (preg_match('/hoy/i', $messageLower)) {
-                        $allEvents = $calendar->getTodayEvents();
-                        $contactName = $messageData['contact_name'];
-                        $filteredItems = [];
-                        
-                        if (!empty($allEvents['items'])) {
-                            foreach ($allEvents['items'] as $event) {
-                                $summary = $event['summary'] ?? '';
-                                if (stripos($summary, $contactName) !== false) {
-                                    $filteredItems[] = $event;
-                                }
-                            }
-                        }
-                        
-                        $events = ['items' => $filteredItems];
-                        $response = "Citas para hoy:\n\n";
-                    } elseif (preg_match('/próxima|siguiente/i', $messageLower)) {
-                        $allEvents = $calendar->listUpcomingEvents(50);
-                        $contactName = $messageData['contact_name'];
-                        $nextEvent = null;
-                        
-                        if (!empty($allEvents['items'])) {
-                            foreach ($allEvents['items'] as $event) {
-                                $summary = $event['summary'] ?? '';
-                                if (stripos($summary, $contactName) !== false) {
-                                    $nextEvent = $event;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        if ($nextEvent) {
-                            $start = new \DateTime($nextEvent['start']['dateTime'] ?? $nextEvent['start']['date']);
-                            $response = "Tu próxima cita es:\n\n";
-                            $response .= "📆 " . $start->format('d/m/Y H:i') . "\n";
-                        } else {
-                            $response = "No tienes próximas citas agendadas.";
-                        }
-                        $events = null;
-                    } else {
-                        $allEvents = $calendar->listUpcomingEvents(50);
-                        $contactName = $messageData['contact_name'];
-                        $filteredItems = [];
-                        
-                        if (!empty($allEvents['items'])) {
-                            foreach ($allEvents['items'] as $event) {
-                                $summary = $event['summary'] ?? '';
-                                if (stripos($summary, $contactName) !== false) {
-                                    $filteredItems[] = $event;
-                                    if (count($filteredItems) >= 5) break;
-                                }
-                            }
-                        }
-                        
-                        $events = ['items' => $filteredItems];
-                        $response = "📅 ";
-                    }
-                    
-                    if ($events !== null) {
-                        $response .= $calendar->formatEventsForWhatsApp($events['items'] ?? []);
-                    }
-                } elseif ($calendarAction === 'availability') {
-                    $timezone = new \DateTimeZone($calendarConfig['timezone']);
-                    $today = (new \DateTime('now', $timezone))->format('Y-m-d');
-                    $todayEvents = $calendar->getEventsForDay($today);
-                    $count = count($todayEvents['items'] ?? []);
-                    
-                    if ($count === 0) {
-                        $hours = $calendarConfig['business_hours'][strtolower(date('l'))];
-                        if ($hours) {
-                            $response = "Estoy disponible hoy de {$hours['start']} a {$hours['end']}.";
-                        } else {
-                            $response = "No atendemos hoy.";
-                        }
-                    } else {
-                        $response = "Hoy tengo {$count} cita(s) agendada(s).";
-                    }
-                } elseif ($calendarAction === 'create') {
-                    $eventState = $conversation['event_creation_state'] ?? null;
-                    
-                    if (!$eventState || $eventState === 'initial') {
-                        $response = "Para agendar tu cita, por favor proporciona la fecha.\n\n";
-                        $response .= "Formatos válidos:\n";
-                        $response .= "• DD/MM/AAAA (ejemplo: 25/02/2026)\n";
-                        $response .= "• Texto (ejemplo: 24 de febrero del 2026)";
-                        
-                        $eventTitle = 'Cita - ' . $messageData['contact_name'];
-                        
-                        $db->query(
-                            'UPDATE conversations SET event_creation_state = :state, event_creation_attempts = 0, event_creation_data = :data WHERE id = :id',
-                            [
-                                ':state' => 'waiting_date',
-                                ':data' => json_encode(['title' => $eventTitle]),
-                                ':id' => $conversation['id']
-                            ]
-                        );
-                    }
-                }
-                
-                $whatsapp->sendMessage($messageData['from'], $response);
-                
-                $conversationService->addMessage(
-                    $conversation['id'],
-                    'bot',
-                    $response,
-                    null,
-                    null,
-                    1.0
-                );
-                
-                $logger->info('Calendar request handled', ['action' => $calendarAction]);
-                
-                http_response_code(200);
-                echo json_encode(['status' => 'calendar_handled']);
-                exit;
-                
-            } catch (\Exception $e) {
-                $logger->error('Calendar error: ' . $e->getMessage());
-            }
-        }
-        
-        $cancelKeywords = ['cancelar', 'salir', 'no quiero', 'olvida', 'dejalo'];
-        $requestingCancel = false;
-        
-        foreach ($cancelKeywords as $keyword) {
-            if (strpos($messageLower, $keyword) !== false) {
-                $requestingCancel = true;
-                break;
-            }
-        }
-        
-        if ($requestingCancel && ($eventState === 'waiting_date' || $eventState === 'waiting_time')) {
-            $db->query(
-                'UPDATE conversations SET event_creation_state = NULL, event_creation_attempts = 0, event_creation_data = NULL WHERE id = :id',
-                [':id' => $conversation['id']]
-            );
-            $cancelMessage = 'Entendido, cancelé el proceso. ¿En qué más puedo ayudarte?';
-            $whatsapp->sendMessage($messageData['from'], $cancelMessage);
-            $conversationService->addMessage($conversation['id'], 'bot', $cancelMessage, null, null, 1.0);
-            http_response_code(200);
-            echo json_encode(['status' => 'flow_cancelled']);
-            exit;
-        }
-        
         $humanKeywords = ['hablar con humano', 'hablar con una persona', 'hablar con operador', 
                           'quiero un humano', 'atención humana', 'operador', 'agente humano',
                           'hablar con alguien', 'persona real', 'representante'];
         
-        $requestingHuman = false;
+        $messageLower = mb_strtolower($messageData['text']);
+        $isRequestingHuman = false;
         
         foreach ($humanKeywords as $keyword) {
             if (strpos($messageLower, $keyword) !== false) {
-                $requestingHuman = true;
+                $isRequestingHuman = true;
                 break;
             }
         }
         
-        if ($requestingHuman) {
-            $humanMessage = 'Enseguida te comunico con alguien de nuestro equipo 😊';
+        if ($isRequestingHuman) {
+            $humanMessage = 'Enseguida te comunico con alguien de nuestro equipo.';
             $whatsapp->sendMessage($messageData['from'], $humanMessage);
             
             $conversationService->addMessage(
@@ -651,31 +325,119 @@ try {
             exit;
         }
         
-        $aiEnabled = $conversation['ai_enabled'] ?? true;
+        $isAiEnabled = $conversation['ai_enabled'] ?? true;
         
-        if ($conversation['status'] === 'pending_human' || !$aiEnabled) {
+        if ($conversation['status'] === 'pending_human' || !$isAiEnabled) {
             $logger->info('Conversation pending human intervention or AI disabled', [
                 'conversation_id' => $conversation['id'],
-                'ai_enabled' => $aiEnabled
+                'ai_enabled' => $isAiEnabled
             ]);
             http_response_code(200);
             echo json_encode(['status' => 'ai_disabled']);
             exit;
         }
         
-        $vectorSearch = new VectorSearchService(
-            $db,
-            Config::get('rag.similarity_method')
+        $calendarConfig = \App\Helpers\CalendarConfigHelper::loadFromDatabase($db);
+
+        $botModeRow = $db->fetchOne(
+            "SELECT setting_value FROM settings WHERE setting_key = 'bot_mode'",
+            []
         );
-        
+        $botMode = $botModeRow['setting_value'] ?? 'ai';
+
+        if ($botMode === 'classic') {
+            $classicBot = new ClassicBotService($db, $logger);
+            $classicResult = $classicBot->processMessage($messageData['text'], $messageData['from']);
+
+            if ($classicResult['type'] === 'response' || $classicResult['type'] === 'fallback') {
+                $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
+                $conversationService->addMessage(
+                    $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
+                );
+                $db->query(
+                    'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                    [':id' => $conversation['id']]
+                );
+                http_response_code(200);
+                echo json_encode(['status' => 'classic_' . $classicResult['type']]);
+                exit;
+            }
+
+            if ($classicResult['type'] === 'calendar') {
+                $calendarService = getCalendarService($logger, $db, $credentialService, $calendarConfig);
+
+                if ($calendarService) {
+                    $flowHandler = new CalendarFlowHandler(
+                        $db, $logger, $calendarService, $openai, $calendarConfig, $conversationService
+                    );
+
+                    $extractedData = [];
+                    try {
+                        $systemPromptRow = $db->fetchOne(
+                            "SELECT setting_value FROM settings WHERE setting_key = 'system_prompt'",
+                            []
+                        );
+                        $sysPrompt = $systemPromptRow['setting_value'] ?? 'Eres un asistente virtual útil y amigable.';
+                        if (file_exists(__DIR__ . '/prompts/calendar_prompt.txt')) {
+                            $sysPrompt .= "\n\n" . file_get_contents(__DIR__ . '/prompts/calendar_prompt.txt');
+                        }
+
+                        $intentService = new CalendarIntentService($openai, $logger);
+                        $intent = $intentService->detectIntent($messageData['text'], [], $sysPrompt);
+
+                        if ($intent['intent'] === 'schedule' || $intent['intent'] === 'none') {
+                            $extractedData = $intent['extracted_data'] ?? [];
+                        }
+                    } catch (\Exception $e) {
+                        $logger->warning('Classic calendar: intent detection failed, proceeding without extracted data: ' . $e->getMessage());
+                    }
+
+                    $flowResult = $flowHandler->startFlow('schedule', $extractedData, $conversation, $messageData);
+
+                    if ($flowResult['handled']) {
+                        $combinedMessage = $classicResult['response'] . "\n\n" . $flowResult['response'];
+                        $whatsapp->sendMessage($messageData['from'], $combinedMessage);
+                        $conversationService->addMessage(
+                            $conversation['id'], 'bot', $combinedMessage, null, null, 1.0
+                        );
+                    } else {
+                        $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
+                        $conversationService->addMessage(
+                            $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
+                        );
+                    }
+                } else {
+                    $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
+                    $conversationService->addMessage(
+                        $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
+                    );
+                }
+
+                $db->query(
+                    'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                    [':id' => $conversation['id']]
+                );
+                http_response_code(200);
+                echo json_encode(['status' => 'classic_calendar']);
+                exit;
+            }
+
+        }
+
         $systemPromptRow = $db->fetchOne(
             "SELECT setting_value FROM settings WHERE setting_key = 'system_prompt'",
             []
         );
         $systemPrompt = $systemPromptRow['setting_value'] ?? 'Eres un asistente virtual útil y amigable.';
         
-        $calendarConfig = \App\Helpers\CalendarConfigHelper::loadFromDatabase($db);
-        if ($calendarConfig['enabled'] && file_exists(__DIR__ . '/prompts/calendar_prompt.txt')) {
+        $calendarEnabledRow = $db->fetchOne(
+            "SELECT setting_value FROM settings WHERE setting_key = 'calendar_enabled'",
+            []
+        );
+        $isCalendarEnabled = $calendarConfig['enabled'] 
+            && (!$calendarEnabledRow || $calendarEnabledRow['setting_value'] === 'true' || $calendarEnabledRow['setting_value'] === '1');
+        
+        if ($isCalendarEnabled && file_exists(__DIR__ . '/prompts/calendar_prompt.txt')) {
             $calendarPrompt = file_get_contents(__DIR__ . '/prompts/calendar_prompt.txt');
             $systemPrompt .= "\n\n" . $calendarPrompt;
         }
@@ -706,16 +468,90 @@ try {
             }
         }
         
+        $cachedIntentResponse = null;
+        
+        if ($isCalendarEnabled) {
+            $calendarService = getCalendarService($logger, $db, $credentialService, $calendarConfig);
+            
+            if ($calendarService) {
+                $flowHandler = new CalendarFlowHandler(
+                    $db, $logger, $calendarService, $openai, $calendarConfig, $conversationService
+                );
+                
+                $flowState = $flowHandler->getFlowState($messageData['from']);
+                
+                if ($flowState) {
+                    $flowResult = $flowHandler->handleActiveFlow(
+                        $flowState, $messageData['text'], $conversation, $messageData
+                    );
+                    
+                    if ($flowResult['handled']) {
+                        $whatsapp->sendMessage($messageData['from'], $flowResult['response']);
+                        $conversationService->addMessage(
+                            $conversation['id'], 'bot', $flowResult['response'], null, null, 1.0
+                        );
+                        $db->query(
+                            'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                            [':id' => $conversation['id']]
+                        );
+                        http_response_code(200);
+                        echo json_encode(['status' => $flowResult['status']]);
+                        exit;
+                    }
+                }
+                
+                $intentService = new CalendarIntentService($openai, $logger);
+                $intent = $intentService->detectIntent(
+                    $messageData['text'], $conversationHistory, $systemPrompt
+                );
+                
+                $logger->info('Calendar intent detection', [
+                    'intent' => $intent['intent'],
+                    'confidence' => $intent['confidence']
+                ]);
+                
+                if ($intent['intent'] !== 'none') {
+                    $flowResult = $flowHandler->startFlow(
+                        $intent['intent'], $intent['extracted_data'], $conversation, $messageData
+                    );
+                    
+                    if ($flowResult['handled']) {
+                        $whatsapp->sendMessage($messageData['from'], $flowResult['response']);
+                        $conversationService->addMessage(
+                            $conversation['id'], 'bot', $flowResult['response'], null, null, 1.0
+                        );
+                        $db->query(
+                            'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                            [':id' => $conversation['id']]
+                        );
+                        http_response_code(200);
+                        echo json_encode(['status' => $flowResult['status']]);
+                        exit;
+                    }
+                }
+                
+                $cachedIntentResponse = $intent['original_response'];
+            }
+        }
+
+        $vectorSearch = new VectorSearchService(
+            $db,
+            Config::get('rag.similarity_method')
+        );
+        
         $rag = new RAGService(
             $openai,
             $vectorSearch,
             $logger,
             3,
-            0.7
+            0.7,
+            $db
         );
         
+        $ragLowConfidenceResponse = null;
+
         try {
-            $result = $rag->generateResponse($messageData['text'], $systemPrompt, $conversationHistory);
+            $result = $rag->generateResponse($messageData['text'], $systemPrompt, $conversationHistory, $openaiTemperature, $openaiMaxTokens);
             
             if ($result['response'] && $result['confidence'] >= Config::get('rag.similarity_threshold')) {
                 $whatsapp->sendMessage($conversation['phone_number'], $result['response']);
@@ -742,57 +578,62 @@ try {
                 ]);
                 exit;
             }
-        } catch (\Exception $e) {
-            if (strpos($e->getMessage(), 'INSUFFICIENT_FUNDS') !== false) {
-                $db->query(
-                    "INSERT INTO settings (setting_key, setting_value) VALUES ('openai_status', 'insufficient_funds') 
-                     ON DUPLICATE KEY UPDATE setting_value = 'insufficient_funds'",
-                    []
-                );
-                $db->query(
-                    "INSERT INTO settings (setting_key, setting_value) VALUES ('openai_error_timestamp', NOW()) 
-                     ON DUPLICATE KEY UPDATE setting_value = NOW()",
-                    []
-                );
+
+            if ($result['response']) {
+                $ragLowConfidenceResponse = $result['response'];
             }
+        } catch (\Exception $e) {
+            handleInsufficientFunds($db, $e);
             $logger->error('RAG Error: ' . $e->getMessage());
         }
         
-        try {
-            $response = $openai->generateResponse($messageData['text'], '', $systemPrompt, 0.7, 500, $conversationHistory);
+        if ($cachedIntentResponse) {
+            $whatsapp->sendMessage($conversation['phone_number'], $cachedIntentResponse);
             
-            if ($response) {
-                $whatsapp->sendMessage($conversation['phone_number'], $response);
-                
-                $conversationService->addMessage(
-                    $conversation['id'],
-                    'bot',
-                    $response
-                );
-                
-                $db->query(
-                    'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
-                    [':id' => $conversation['id']]
-                );
-                
-                http_response_code(200);
-                echo json_encode(['status' => 'processed', 'type' => 'openai']);
-                exit;
+            $conversationService->addMessage(
+                $conversation['id'],
+                'bot',
+                $cachedIntentResponse
+            );
+            
+            $db->query(
+                'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                [':id' => $conversation['id']]
+            );
+            
+            http_response_code(200);
+            echo json_encode(['status' => 'processed', 'type' => 'intent_reuse']);
+            exit;
+        }
+        
+        $fallbackResponse = $ragLowConfidenceResponse;
+
+        if (!$fallbackResponse) {
+            try {
+                $fallbackResponse = $openai->generateResponse($messageData['text'], '', $systemPrompt, $openaiTemperature, $openaiMaxTokens, $conversationHistory);
+            } catch (\Exception $e) {
+                handleInsufficientFunds($db, $e);
+                $logger->error('OpenAI Fallback Error: ' . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            if (strpos($e->getMessage(), 'INSUFFICIENT_FUNDS') !== false) {
-                $db->query(
-                    "INSERT INTO settings (setting_key, setting_value) VALUES ('openai_status', 'insufficient_funds') 
-                     ON DUPLICATE KEY UPDATE setting_value = 'insufficient_funds'",
-                    []
-                );
-                $db->query(
-                    "INSERT INTO settings (setting_key, setting_value) VALUES ('openai_error_timestamp', NOW()) 
-                     ON DUPLICATE KEY UPDATE setting_value = NOW()",
-                    []
-                );
-            }
-            $logger->error('OpenAI Fallback Error: ' . $e->getMessage());
+        }
+        
+        if ($fallbackResponse) {
+            $whatsapp->sendMessage($conversation['phone_number'], $fallbackResponse);
+            
+            $conversationService->addMessage(
+                $conversation['id'],
+                'bot',
+                $fallbackResponse
+            );
+            
+            $db->query(
+                'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                [':id' => $conversation['id']]
+            );
+            
+            http_response_code(200);
+            echo json_encode(['status' => 'processed', 'type' => $ragLowConfidenceResponse ? 'rag_low_confidence' : 'openai']);
+            exit;
         }
         
         $fallbackMessage = 'Lo siento, no encontré información relevante sobre tu consulta. Un operador te atenderá pronto.';
