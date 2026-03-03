@@ -61,6 +61,7 @@ class FlowBuilderService
             'next_node_id'      => $nextNodeId,
             'is_root'           => (int)($data['is_root'] ?? false),
             'requires_calendar' => (int)($data['requires_calendar'] ?? false),
+            'match_any_input'   => (int)($data['match_any_input'] ?? false),
             'position_order'    => (int)($data['position_order'] ?? 0),
             'is_active'         => (int)($data['is_active'] ?? true),
         ];
@@ -176,6 +177,7 @@ class FlowBuilderService
                 'next_node_id'      => null,
                 'is_root'           => (int)($node['is_root'] ?? false),
                 'requires_calendar' => (int)($node['requires_calendar'] ?? false),
+                'match_any_input'   => (int)($node['match_any_input'] ?? false),
                 'position_order'    => (int)($node['position_order'] ?? 0),
                 'is_active'         => (int)($node['is_active'] ?? true),
             ]);

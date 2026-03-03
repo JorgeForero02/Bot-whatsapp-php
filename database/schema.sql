@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS flow_nodes (
     next_node_id INT NULL,
     is_root BOOLEAN DEFAULT FALSE,
     requires_calendar BOOLEAN DEFAULT FALSE,
+    match_any_input TINYINT(1) NOT NULL DEFAULT 0,
     position_order INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -141,7 +142,8 @@ CREATE TABLE IF NOT EXISTS flow_nodes (
     FOREIGN KEY (next_node_id) REFERENCES flow_nodes(id) ON DELETE SET NULL,
     INDEX idx_is_root (is_root),
     INDEX idx_is_active (is_active),
-    INDEX idx_position (position_order)
+    INDEX idx_position (position_order),
+    INDEX idx_match_any (match_any_input)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Options for each flow node (branching)

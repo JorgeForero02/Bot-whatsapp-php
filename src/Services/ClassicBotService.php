@@ -75,6 +75,23 @@ class ClassicBotService
             }
         }
 
+        $matchAnyNodes = array_values(array_filter($rootNodes, function ($n) {
+            return !empty($n['match_any_input']);
+        }));
+
+        if (!empty($matchAnyNodes)) {
+            if (count($matchAnyNodes) > 1) {
+                $this->logger->warning('ClassicBot: multiple match_any_input nodes found, using first', [
+                    'count' => count($matchAnyNodes),
+                ]);
+            }
+            $this->logger->info('ClassicBot: match_any_input triggered', [
+                'node_id' => $matchAnyNodes[0]['id'],
+                'phone'   => $userPhone,
+            ]);
+            return $this->resolveNextNode((int)$matchAnyNodes[0]['id'], $userPhone, $fallback);
+        }
+
         return ['type' => 'fallback', 'response' => $fallback];
     }
 
@@ -91,12 +108,12 @@ class ClassicBotService
             return ['type' => 'fallback', 'response' => $fallback];
         }
 
-        $this->saveSession($userPhone, $nodeId);
-
         if ($node['requires_calendar']) {
+            $this->clearSession($userPhone);
             return ['type' => 'calendar', 'response' => $node['message_text']];
         }
 
+        $this->saveSession($userPhone, $nodeId);
         return ['type' => 'response', 'response' => $node['message_text']];
     }
 

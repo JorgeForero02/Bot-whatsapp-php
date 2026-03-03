@@ -39,6 +39,7 @@ function renderNodes(nodes) {
                 <div class="flex items-center space-x-2">
                     ${node.is_root ? '<span class="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs rounded-full font-medium">Raíz</span>' : ''}
                     ${node.requires_calendar ? '<span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">Calendario</span>' : ''}
+                    ${node.match_any_input ? '<span class="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 text-xs rounded-full font-medium">Cualquier msg</span>' : ''}
                     ${!node.is_active ? '<span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 text-xs rounded-full">Inactivo</span>' : ''}
                     <h3 class="font-bold text-gray-900 dark:text-gray-100">${escapeHtml(node.name)}</h3>
                 </div>
@@ -83,12 +84,17 @@ function openNodeModal(nodeId) {
     document.getElementById('node-message').value = '';
     document.getElementById('node-is-root').checked = false;
     document.getElementById('node-requires-calendar').checked = false;
+    document.getElementById('node-match-any-input').checked = false;
     document.getElementById('node-order').value = 0;
     document.getElementById('node-is-active').checked = true;
     document.getElementById('node-next').value = '';
     document.getElementById('options-container').innerHTML = '';
     document.getElementById('modal-title').textContent = nodeId ? 'Editar Nodo' : 'Nuevo Nodo';
     document.getElementById('message-preview').classList.add('hidden');
+    document.getElementById('match-any-input-row').classList.add('hidden');
+    document.getElementById('match-any-notice').classList.add('hidden');
+    document.getElementById('keywords-input').disabled = false;
+    document.getElementById('keywords-tags').style.opacity = '';
 
     populateNextNodeSelect(nodeId || null);
 
@@ -100,7 +106,10 @@ function openNodeModal(nodeId) {
             document.getElementById('node-message').value = node.message_text;
             document.getElementById('node-is-root').checked = !!node.is_root;
             document.getElementById('node-requires-calendar').checked = !!node.requires_calendar;
+            document.getElementById('node-match-any-input').checked = !!node.match_any_input;
             document.getElementById('node-order').value = node.position_order;
+            onIsRootChange();
+            if (node.match_any_input) onMatchAnyInputChange();
             document.getElementById('node-is-active').checked = !!node.is_active;
             document.getElementById('node-next').value = node.next_node_id || '';
 
@@ -269,6 +278,7 @@ async function saveNode() {
         next_node_id:      document.getElementById('node-next').value || null,
         is_root:           document.getElementById('node-is-root').checked,
         requires_calendar: document.getElementById('node-requires-calendar').checked,
+        match_any_input:   document.getElementById('node-match-any-input').checked,
         position_order:    parseInt(document.getElementById('node-order').value),
         is_active:         document.getElementById('node-is-active').checked,
         options:           options,
@@ -394,6 +404,36 @@ function showToast(msg, color) {
     div.textContent = msg;
     document.body.appendChild(div);
     setTimeout(() => div.remove(), 3000);
+}
+
+function onIsRootChange() {
+    const isRoot = document.getElementById('node-is-root').checked;
+    const row = document.getElementById('match-any-input-row');
+    if (isRoot) {
+        row.classList.remove('hidden');
+    } else {
+        row.classList.add('hidden');
+        document.getElementById('node-match-any-input').checked = false;
+        document.getElementById('match-any-notice').classList.add('hidden');
+        document.getElementById('keywords-input').disabled = false;
+        document.getElementById('keywords-tags').style.opacity = '';
+    }
+}
+
+function onMatchAnyInputChange() {
+    const isChecked = document.getElementById('node-match-any-input').checked;
+    const notice = document.getElementById('match-any-notice');
+    const kwInput = document.getElementById('keywords-input');
+    const kwTags = document.getElementById('keywords-tags');
+    if (isChecked) {
+        notice.classList.remove('hidden');
+        kwInput.disabled = true;
+        kwTags.style.opacity = '0.4';
+    } else {
+        notice.classList.add('hidden');
+        kwInput.disabled = false;
+        kwTags.style.opacity = '';
+    }
 }
 
 function escapeHtml(str) {

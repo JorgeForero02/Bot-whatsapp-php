@@ -101,7 +101,7 @@ ob_start();
                         <p class="text-xs text-gray-500 dark:text-gray-400">Activado sin contexto previo</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="node-is-root" class="sr-only peer">
+                        <input type="checkbox" id="node-is-root" class="sr-only peer" onchange="onIsRootChange()">
                         <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:bg-gray-700"></div>
                     </label>
                 </div>
@@ -114,6 +114,22 @@ ob_start();
                         <input type="checkbox" id="node-requires-calendar" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:bg-gray-700"></div>
                     </label>
+                </div>
+            </div>
+
+            <div id="match-any-input-row" class="hidden">
+                <div class="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Activar con cualquier mensaje</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Se dispara con cualquier mensaje cuando no hay sesión activa</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="node-match-any-input" class="sr-only peer" onchange="onMatchAnyInputChange()">
+                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500 dark:bg-gray-700"></div>
+                    </label>
+                </div>
+                <div id="match-any-notice" class="hidden mt-2 px-3 py-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg text-xs text-yellow-700 dark:text-yellow-300">
+                    Las palabras clave son ignoradas cuando este modo está activo.
                 </div>
             </div>
 

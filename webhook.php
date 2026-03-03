@@ -346,79 +346,126 @@ try {
         $botMode = $botModeRow['setting_value'] ?? 'ai';
 
         if ($botMode === 'classic') {
-            $classicBot = new ClassicBotService($db, $logger);
-            $classicResult = $classicBot->processMessage($messageData['text'], $messageData['from']);
-
-            if ($classicResult['type'] === 'response' || $classicResult['type'] === 'fallback') {
-                $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
-                $conversationService->addMessage(
-                    $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
-                );
-                $db->query(
-                    'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
-                    [':id' => $conversation['id']]
-                );
-                http_response_code(200);
-                echo json_encode(['status' => 'classic_' . $classicResult['type']]);
-                exit;
-            }
-
-            if ($classicResult['type'] === 'calendar') {
+            try {
                 $calendarService = getCalendarService($logger, $db, $credentialService, $calendarConfig);
+                $classicFlowHandler = null;
 
+                // STEP 1: Check active calendar flow BEFORE ClassicBotService (fixes PROBLEMA 2)
                 if ($calendarService) {
-                    $flowHandler = new CalendarFlowHandler(
+                    $classicFlowHandler = new CalendarFlowHandler(
                         $db, $logger, $calendarService, $openai, $calendarConfig, $conversationService
                     );
+                    $calendarFlowState = $classicFlowHandler->getFlowState($messageData['from']);
 
-                    $extractedData = [];
-                    try {
-                        $systemPromptRow = $db->fetchOne(
-                            "SELECT setting_value FROM settings WHERE setting_key = 'system_prompt'",
-                            []
+                    if ($calendarFlowState) {
+                        $calFlowResult = $classicFlowHandler->handleActiveFlow(
+                            $calendarFlowState, $messageData['text'], $conversation, $messageData
                         );
-                        $sysPrompt = $systemPromptRow['setting_value'] ?? 'Eres un asistente virtual útil y amigable.';
-                        if (file_exists(__DIR__ . '/prompts/calendar_prompt.txt')) {
-                            $sysPrompt .= "\n\n" . file_get_contents(__DIR__ . '/prompts/calendar_prompt.txt');
-                        }
 
-                        $intentService = new CalendarIntentService($openai, $logger);
-                        $intent = $intentService->detectIntent($messageData['text'], [], $sysPrompt);
-
-                        if ($intent['intent'] === 'schedule' || $intent['intent'] === 'none') {
-                            $extractedData = $intent['extracted_data'] ?? [];
+                        if ($calFlowResult['handled']) {
+                            $whatsapp->sendMessage($messageData['from'], $calFlowResult['response']);
+                            $conversationService->addMessage(
+                                $conversation['id'], 'bot', $calFlowResult['response'], null, null, 1.0
+                            );
+                            $db->query(
+                                'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                                [':id' => $conversation['id']]
+                            );
+                            http_response_code(200);
+                            echo json_encode(['status' => $calFlowResult['status']]);
+                            exit;
                         }
-                    } catch (\Exception $e) {
-                        $logger->warning('Classic calendar: intent detection failed, proceeding without extracted data: ' . $e->getMessage());
                     }
+                }
 
-                    $flowResult = $flowHandler->startFlow('schedule', $extractedData, $conversation, $messageData);
+                // STEP 2: No active calendar flow — process with ClassicBot
+                $classicBot = new ClassicBotService($db, $logger);
+                $classicResult = $classicBot->processMessage($messageData['text'], $messageData['from']);
 
-                    if ($flowResult['handled']) {
-                        $combinedMessage = $classicResult['response'] . "\n\n" . $flowResult['response'];
-                        $whatsapp->sendMessage($messageData['from'], $combinedMessage);
-                        $conversationService->addMessage(
-                            $conversation['id'], 'bot', $combinedMessage, null, null, 1.0
+                if ($classicResult['type'] === 'response' || $classicResult['type'] === 'fallback') {
+                    $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
+                    $conversationService->addMessage(
+                        $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
+                    );
+                    $db->query(
+                        'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                        [':id' => $conversation['id']]
+                    );
+                    http_response_code(200);
+                    echo json_encode(['status' => 'classic_' . $classicResult['type']]);
+                    exit;
+                }
+
+                if ($classicResult['type'] === 'calendar') {
+                    if ($calendarService) {
+                        $flowHandler = $classicFlowHandler ?? new CalendarFlowHandler(
+                            $db, $logger, $calendarService, $openai, $calendarConfig, $conversationService
                         );
+
+                        $extractedData = [];
+                        try {
+                            $systemPromptRow = $db->fetchOne(
+                                "SELECT setting_value FROM settings WHERE setting_key = 'system_prompt'",
+                                []
+                            );
+                            $sysPrompt = $systemPromptRow['setting_value'] ?? 'Eres un asistente virtual útil y amigable.';
+                            if (file_exists(__DIR__ . '/prompts/calendar_prompt.txt')) {
+                                $sysPrompt .= "\n\n" . file_get_contents(__DIR__ . '/prompts/calendar_prompt.txt');
+                            }
+
+                            $intentService = new CalendarIntentService($openai, $logger);
+                            $intent = $intentService->detectIntent($messageData['text'], [], $sysPrompt);
+
+                            if ($intent['intent'] === 'schedule' || $intent['intent'] === 'none') {
+                                $extractedData = $intent['extracted_data'] ?? [];
+                            }
+                        } catch (\Throwable $e) {
+                            $logger->warning('Classic calendar: intent detection failed, proceeding without extracted data: ' . $e->getMessage());
+                        }
+
+                        $flowResult = $flowHandler->startFlow('schedule', $extractedData, $conversation, $messageData);
+
+                        if ($flowResult['handled']) {
+                            $combinedMessage = $classicResult['response'] . "\n\n" . $flowResult['response'];
+                            $whatsapp->sendMessage($messageData['from'], $combinedMessage);
+                            $conversationService->addMessage(
+                                $conversation['id'], 'bot', $combinedMessage, null, null, 1.0
+                            );
+                        } else {
+                            $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
+                            $conversationService->addMessage(
+                                $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
+                            );
+                        }
                     } else {
                         $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
                         $conversationService->addMessage(
                             $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
                         );
                     }
-                } else {
-                    $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
-                    $conversationService->addMessage(
-                        $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
+
+                    $db->query(
+                        'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                        [':id' => $conversation['id']]
                     );
+                    http_response_code(200);
+                    echo json_encode(['status' => 'classic_calendar']);
+                    exit;
                 }
 
-                $db->query(
-                    'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
-                    [':id' => $conversation['id']]
-                );
+            } catch (\Throwable $e) {
+                $logger->error('Classic bot error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+                $classicErrMsg = 'Lo siento, ocurrió un error procesando tu mensaje. Por favor intenta de nuevo.';
+                try {
+                    $whatsapp->sendMessage($messageData['from'], $classicErrMsg);
+                    $conversationService->addMessage($conversation['id'], 'bot', $classicErrMsg, null, null, 0.0);
+                    $db->query(
+                        'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                        [':id' => $conversation['id']]
+                    );
+                } catch (\Throwable $ignored) {}
                 http_response_code(200);
-                echo json_encode(['status' => 'classic_calendar']);
+                echo json_encode(['status' => 'classic_error']);
                 exit;
             }
 
