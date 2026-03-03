@@ -14,7 +14,7 @@ temperatureSlider?.addEventListener('input', function() {
 
 async function loadSettings() {
     try {
-        const response = await fetch(BASE_PATH + '/api/get-settings.php');
+        const response = await fetch(BASE_PATH + '/api/get-settings.php', { cache: 'no-store' });
         const data = await response.json();
         
         if (data.success && data.settings) {

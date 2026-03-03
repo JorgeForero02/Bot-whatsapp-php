@@ -16,6 +16,8 @@ class CalendarFlowHandler
     const STEP_EXPECTING_CONFIRMATION = 'expecting_confirmation';
     const STEP_CANCEL_SELECT = 'cancel_select';
     const STEP_CANCEL_CONFIRM = 'cancel_confirm';
+    const STEP_RESCHEDULE_SELECT = 'reschedule_select';
+    const STEP_RESCHEDULE_REASON = 'reschedule_reason';
 
     const MAX_ATTEMPTS = 5;
     const FLOW_TTL_MINUTES = 30;
@@ -105,6 +107,10 @@ class CalendarFlowHandler
                 return $this->handleCancelSelect($message, $flowState, $messageData);
             case self::STEP_CANCEL_CONFIRM:
                 return $this->handleCancelConfirm($message, $flowState, $messageData);
+            case self::STEP_RESCHEDULE_SELECT:
+                return $this->handleRescheduleSelect($message, $flowState, $messageData);
+            case self::STEP_RESCHEDULE_REASON:
+                return $this->handleRescheduleReason($message, $flowState, $messageData);
             default:
                 $this->logger->warning('Unknown flow step', ['step' => $flowState['current_step']]);
                 $this->clearFlowState($messageData['from']);
@@ -125,6 +131,8 @@ class CalendarFlowHandler
                 return $this->handleCheckAvailability($extractedData, $conversation, $messageData);
             case 'cancel':
                 return $this->startCancelFlow($conversation, $messageData);
+            case 'reschedule':
+                return $this->startRescheduleFlow($conversation, $messageData);
             case 'list':
                 return $this->startListFlow($messageData);
             default:
@@ -454,11 +462,28 @@ class CalendarFlowHandler
         );
 
         $dateFormatted = $this->formatDateForUser($date);
-        $response  = "Resumen de tu cita:\n";
-        $response .= "📅 Fecha: {$dateFormatted}\n";
-        $response .= "🕐 Hora: {$time}\n";
-        $response .= "📋 Motivo: {$service}\n";
-        $response .= "\n¿Confirmas la cita? (sí/no)";
+
+        $currentState   = $this->getFlowState($phone);
+        $rescheduleJson = $currentState['cancel_events_json'] ?? null;
+        $rescheduleData = $rescheduleJson ? json_decode($rescheduleJson, true) : null;
+        $isReschedule   = !empty($rescheduleData['is_reschedule']);
+
+        if ($isReschedule) {
+            $oldSummary = $rescheduleData['event_summary'] ?? 'Cita anterior';
+            $response  = "Resumen del reagendamiento:\n\n";
+            $response .= "❌ *Cita actual:* {$oldSummary}\n\n";
+            $response .= "✅ *Nueva cita:*\n";
+            $response .= "📅 Fecha: {$dateFormatted}\n";
+            $response .= "🕐 Hora: {$time}\n";
+            $response .= "📋 Motivo: {$service}\n";
+            $response .= "\n¿Confirmas el cambio? (sí/no)";
+        } else {
+            $response  = "Resumen de tu cita:\n";
+            $response .= "📅 Fecha: {$dateFormatted}\n";
+            $response .= "🕐 Hora: {$time}\n";
+            $response .= "📋 Motivo: {$service}\n";
+            $response .= "\n¿Confirmas la cita? (sí/no)";
+        }
 
         return ['handled' => true, 'response' => $response, 'status' => 'expecting_confirmation'];
     }
@@ -694,6 +719,147 @@ class CalendarFlowHandler
         }
     }
 
+    private function startRescheduleFlow(array $conversation, array $messageData): array
+    {
+        $phone = $messageData['from'];
+        $contactName = $messageData['contact_name'] ?? 'Cliente';
+
+        try {
+            $timezone  = new \DateTimeZone($this->calendarConfig['timezone']);
+            $startDate = (new \DateTime('now', $timezone))->format('Y-m-d');
+            $endDate   = (new \DateTime('+30 days', $timezone))->format('Y-m-d');
+
+            $allEvents  = $this->calendar->getEventsByDateRange($startDate, $endDate);
+            $userEvents = [];
+
+            if (!empty($allEvents['items'])) {
+                foreach ($allEvents['items'] as $event) {
+                    $summary = $event['summary'] ?? '';
+                    if (stripos($summary, $contactName) !== false) {
+                        $userEvents[] = $event;
+                    }
+                }
+            }
+
+            if (empty($userEvents)) {
+                return [
+                    'handled'  => true,
+                    'response' => 'No encontré citas tuyas en los próximos 30 días para reagendar.',
+                    'status'   => 'reschedule_no_events'
+                ];
+            }
+
+            $this->saveFlowState($phone, self::STEP_RESCHEDULE_SELECT, $conversation['id'], [
+                'cancel_events_json' => json_encode($userEvents)
+            ]);
+
+            $response = "Estas son tus próximas citas:\n\n";
+            foreach ($userEvents as $index => $event) {
+                $start = new \DateTime($event['start']['dateTime'] ?? $event['start']['date']);
+                $response .= ($index + 1) . ". " . $start->format('d/m/Y H:i');
+                if (isset($event['summary'])) {
+                    $response .= " - " . $event['summary'];
+                }
+                $response .= "\n";
+            }
+            $response .= "\n¿Cuál deseas reagendar? (escribe el número)";
+
+            return ['handled' => true, 'response' => $response, 'status' => 'reschedule_select'];
+        } catch (\Exception $e) {
+            $this->logger->error('Error starting reschedule flow', ['error' => $e->getMessage()]);
+            return [
+                'handled'  => true,
+                'response' => 'No pude consultar tus citas en este momento. Por favor intenta de nuevo.',
+                'status'   => 'reschedule_error'
+            ];
+        }
+    }
+
+    private function handleRescheduleSelect(string $message, array $flowState, array $messageData): array
+    {
+        $phone     = $messageData['from'];
+        $events    = json_decode($flowState['cancel_events_json'], true) ?: [];
+        $selection = intval(trim($message));
+
+        if ($selection < 1 || $selection > count($events)) {
+            $attempts = intval($flowState['attempts']) + 1;
+            $this->db->query(
+                'UPDATE calendar_flow_state SET attempts = :attempts, expires_at = :expires WHERE user_phone = :phone',
+                [':attempts' => $attempts, ':expires' => $this->newExpiry(), ':phone' => $phone]
+            );
+
+            if ($attempts >= self::MAX_ATTEMPTS) {
+                $this->clearFlowState($phone);
+                return [
+                    'handled'  => true,
+                    'response' => 'No pude entender tu respuesta. El proceso fue cancelado. Escríbeme cuando quieras intentarlo de nuevo.',
+                    'status'   => 'flow_max_attempts'
+                ];
+            }
+
+            return [
+                'handled'  => true,
+                'response' => 'Por favor escribe un número del 1 al ' . count($events) . '.',
+                'status'   => 'reschedule_invalid_selection'
+            ];
+        }
+
+        $selectedEvent  = $events[$selection - 1];
+        $start          = new \DateTime($selectedEvent['start']['dateTime'] ?? $selectedEvent['start']['date']);
+        $summary        = $selectedEvent['summary'] ?? 'Cita';
+        $rescheduleData = json_encode([
+            'event_id'      => $selectedEvent['id'],
+            'event_summary' => $summary . ' (' . $start->format('d/m/Y H:i') . ')',
+            'is_reschedule' => true
+        ]);
+
+        $this->db->query(
+            'UPDATE calendar_flow_state SET current_step = :step, cancel_events_json = :data, attempts = 0, expires_at = :expires WHERE user_phone = :phone',
+            [
+                ':step'    => self::STEP_RESCHEDULE_REASON,
+                ':data'    => $rescheduleData,
+                ':expires' => $this->newExpiry(),
+                ':phone'   => $phone
+            ]
+        );
+
+        return [
+            'handled'  => true,
+            'response' => "¿Cuál es el motivo del reagendamiento?\n(Ej: surgió un imprevisto, cambio de agenda, prefiero otro horario...)",
+            'status'   => 'reschedule_reason'
+        ];
+    }
+
+    private function handleRescheduleReason(string $message, array $flowState, array $messageData): array
+    {
+        $phone  = $messageData['from'];
+        $reason = trim($message);
+
+        if (mb_strlen($reason) < 2) {
+            return [
+                'handled'  => true,
+                'response' => 'Por favor indica el motivo del reagendamiento (Ej: surgió un imprevisto, cambio de agenda...).',
+                'status'   => 'reschedule_reason'
+            ];
+        }
+
+        $this->db->query(
+            'UPDATE calendar_flow_state SET current_step = :step, extracted_service = :service, attempts = 0, expires_at = :expires WHERE user_phone = :phone',
+            [
+                ':step'    => self::STEP_EXPECTING_DATE,
+                ':service' => $reason,
+                ':expires' => $this->newExpiry(),
+                ':phone'   => $phone
+            ]
+        );
+
+        return [
+            'handled'  => true,
+            'response' => "Entendido. ¿Qué nueva fecha prefieres?\n\nEjemplos: \"el viernes\", \"25/03/2026\", \"la próxima semana\"",
+            'status'   => 'reschedule_expecting_date'
+        ];
+    }
+
     private function startCancelFlow(array $conversation, array $messageData): array
     {
         $phone = $messageData['from'];
@@ -879,10 +1045,26 @@ class CalendarFlowHandler
         $phone = $messageData['from'];
         $contactName = $messageData['contact_name'] ?? 'Cliente';
 
+        $rescheduleJson = $flowState['cancel_events_json'] ?? null;
+        $rescheduleData = $rescheduleJson ? json_decode($rescheduleJson, true) : null;
+        $isReschedule   = !empty($rescheduleData['is_reschedule']);
+
         try {
             $date    = $flowState['extracted_date'];
             $time    = $flowState['extracted_time'];
             $service = $flowState['extracted_service'] ?? null;
+
+            if ($isReschedule && !empty($rescheduleData['event_id'])) {
+                try {
+                    $this->calendar->deleteEvent($rescheduleData['event_id']);
+                    $this->logger->info('Old event deleted for reschedule', ['event_id' => $rescheduleData['event_id']]);
+                } catch (\Exception $e) {
+                    $this->logger->warning('Could not delete old event during reschedule', [
+                        'event_id' => $rescheduleData['event_id'],
+                        'error'    => $e->getMessage()
+                    ]);
+                }
+            }
 
             $eventTitle = $service
                 ? $contactName . ' - ' . $service
@@ -921,7 +1103,11 @@ class CalendarFlowHandler
                 'service'  => $service
             ]);
 
-            $response  = "✅ ¡Cita confirmada!\n";
+            if ($isReschedule) {
+                $response  = "✅ ¡Cita reagendada exitosamente!\n";
+            } else {
+                $response  = "✅ ¡Cita confirmada!\n";
+            }
             $response .= "📅 {$confirmationDate} a las {$confirmationTime}";
             if ($service) {
                 $response .= "\n📋 Motivo: {$service}";
@@ -1071,7 +1257,10 @@ class CalendarFlowHandler
 
     private function isFlowCancelRequest(string $messageLower, string $currentStep): bool
     {
-        if ($currentStep === self::STEP_CANCEL_CONFIRM || $currentStep === self::STEP_CANCEL_SELECT) {
+        if (in_array($currentStep, [
+                self::STEP_CANCEL_CONFIRM, self::STEP_CANCEL_SELECT,
+                self::STEP_RESCHEDULE_SELECT, self::STEP_RESCHEDULE_REASON
+            ])) {
             return false;
         }
 

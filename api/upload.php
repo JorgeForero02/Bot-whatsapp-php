@@ -80,7 +80,7 @@ try {
         ]
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $logger->error('Upload Error: ' . $e->getMessage());
     http_response_code(500);
     ob_clean();

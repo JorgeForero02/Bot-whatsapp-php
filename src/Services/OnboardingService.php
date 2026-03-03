@@ -53,12 +53,38 @@ class OnboardingService
 
     public function getProgress(): array
     {
+        $this->ensureStepsSeeded();
         return $this->db->fetchAll(
             "SELECT step_name, step_order, is_completed, is_skipped, completed_at
              FROM onboarding_progress
              ORDER BY step_order ASC",
             []
         ) ?? [];
+    }
+
+    private function ensureStepsSeeded(): void
+    {
+        $count = $this->db->fetchOne("SELECT COUNT(*) as total FROM onboarding_progress", []);
+        if ($count && (int)$count['total'] > 0) {
+            return;
+        }
+        $steps = [
+            'whatsapp_credentials' => 1,
+            'openai_credentials'   => 2,
+            'bot_personality'      => 3,
+            'calendar_setup'       => 4,
+            'flow_builder'         => 5,
+            'test_connection'      => 6,
+            'go_live'              => 7,
+        ];
+        foreach ($steps as $name => $order) {
+            $this->db->query(
+                "INSERT INTO onboarding_progress (step_name, step_order, is_completed, is_skipped)
+                 VALUES (:step, :order, 0, 0)
+                 ON DUPLICATE KEY UPDATE step_order = :order2",
+                [':step' => $name, ':order' => $order, ':order2' => $order]
+            );
+        }
     }
 
     public function isOnboardingComplete(): bool
@@ -85,6 +111,7 @@ class OnboardingService
             "UPDATE onboarding_progress SET is_completed = 0, is_skipped = 0, completed_at = NULL",
             []
         );
+        $this->ensureStepsSeeded();
     }
 
     public function autoSkipIfNeeded(): void
@@ -92,78 +119,18 @@ class OnboardingService
         try {
             $botMode = $this->getSetting('bot_mode', 'ai');
 
-            // Auto-complete whatsapp_credentials si ya tiene token guardado
-            $waCreds = $this->db->fetchOne(
-                "SELECT whatsapp_access_token FROM bot_credentials WHERE id = 1", []
+            // Auto-skip calendar_setup only if calendar is disabled AND user hasn't touched this step yet
+            $calRow = $this->db->fetchOne(
+                "SELECT is_completed, is_skipped FROM onboarding_progress WHERE step_name = 'calendar_setup'", []
             );
-            if ($waCreds && !empty($waCreds['whatsapp_access_token'])) {
-                $row = $this->db->fetchOne(
-                    "SELECT is_completed FROM onboarding_progress WHERE step_name = 'whatsapp_credentials'", []
-                );
-                if ($row && !$row['is_completed']) {
-                    $this->completeStep('whatsapp_credentials');
-                }
-            }
-
-            // Auto-complete openai_credentials o skip si es modo classic
-            if ($botMode === 'classic') {
-                $row = $this->db->fetchOne(
-                    "SELECT is_skipped FROM onboarding_progress WHERE step_name = 'openai_credentials'", []
-                );
-                if ($row && !$row['is_skipped']) {
-                    $this->skipStep('openai_credentials');
-                }
-            } else {
-                $oaiCreds = $this->db->fetchOne(
-                    "SELECT openai_api_key FROM bot_credentials WHERE id = 1", []
-                );
-                if ($oaiCreds && !empty($oaiCreds['openai_api_key'])) {
-                    $row = $this->db->fetchOne(
-                        "SELECT is_completed FROM onboarding_progress WHERE step_name = 'openai_credentials'", []
-                    );
-                    if ($row && !$row['is_completed']) {
-                        $this->completeStep('openai_credentials');
-                    }
-                }
-            }
-
-            // Auto-complete bot_personality si tiene prompt guardado
-            $promptRow = $this->db->fetchOne(
-                "SELECT setting_value FROM settings WHERE setting_key = 'system_prompt'", []
-            );
-            if ($promptRow && !empty($promptRow['setting_value'])) {
-                $row = $this->db->fetchOne(
-                    "SELECT is_completed FROM onboarding_progress WHERE step_name = 'bot_personality'", []
-                );
-                if ($row && !$row['is_completed']) {
-                    $this->completeStep('bot_personality');
-                }
-            }
-
-            // Auto-skip/complete calendar_setup
-            $calEnabled = $this->getSetting('calendar_enabled', 'false');
-            if ($calEnabled !== 'true' && $calEnabled !== '1') {
-                $row = $this->db->fetchOne(
-                    "SELECT is_completed, is_skipped FROM onboarding_progress WHERE step_name = 'calendar_setup'", []
-                );
-                if ($row && !$row['is_completed'] && !$row['is_skipped']) {
+            if ($calRow && !$calRow['is_completed'] && !$calRow['is_skipped']) {
+                $calEnabled = $this->getSetting('calendar_enabled', 'false');
+                if ($calEnabled !== 'true' && $calEnabled !== '1') {
                     $this->skipStep('calendar_setup');
                 }
-            } else {
-                $gCreds = $this->db->fetchOne(
-                    "SELECT access_token FROM google_oauth_credentials WHERE id = 1", []
-                );
-                if ($gCreds && !empty($gCreds['access_token'])) {
-                    $row = $this->db->fetchOne(
-                        "SELECT is_completed FROM onboarding_progress WHERE step_name = 'calendar_setup'", []
-                    );
-                    if ($row && !$row['is_completed']) {
-                        $this->completeStep('calendar_setup');
-                    }
-                }
             }
 
-            // Auto-skip flow_builder en modo AI
+            // Auto-skip flow_builder in AI mode only if user hasn't touched this step yet
             if ($botMode !== 'classic') {
                 $row = $this->db->fetchOne(
                     "SELECT is_completed, is_skipped FROM onboarding_progress WHERE step_name = 'flow_builder'", []
@@ -173,7 +140,17 @@ class OnboardingService
                 }
             }
 
-        } catch (\Exception $e) {
+            // Auto-skip openai_credentials in classic mode only if user hasn't touched this step yet
+            if ($botMode === 'classic') {
+                $row = $this->db->fetchOne(
+                    "SELECT is_completed, is_skipped FROM onboarding_progress WHERE step_name = 'openai_credentials'", []
+                );
+                if ($row && !$row['is_completed'] && !$row['is_skipped']) {
+                    $this->skipStep('openai_credentials');
+                }
+            }
+
+        } catch (\Throwable $e) {
         }
     }
 

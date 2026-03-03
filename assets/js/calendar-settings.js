@@ -7,7 +7,7 @@ function toggleDayInputs(day) {
 
 async function loadSettings() {
     try {
-        const response = await fetch(BASE_PATH + '/api/get-calendar-settings.php');
+        const response = await fetch(BASE_PATH + '/api/get-calendar-settings.php', { cache: 'no-store' });
         const data = await response.json();
         
         if (data.error) {

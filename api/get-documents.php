@@ -24,7 +24,7 @@ try {
         'documents' => $documents
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $logger->error('Get Documents Error: ' . $e->getMessage());
     http_response_code(500);
     ob_clean();

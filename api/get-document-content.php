@@ -27,7 +27,7 @@ try {
         'chunk_count' => count($chunks)
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $logger->error('Get Document Content Error: ' . $e->getMessage());
     http_response_code(500);
     ob_clean();

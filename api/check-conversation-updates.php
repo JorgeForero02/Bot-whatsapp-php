@@ -26,7 +26,7 @@ try {
         'updated_conversations' => $updatedConversations
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     if (isset($logger)) {
         $logger->error('Check Conversation Updates Error: ' . $e->getMessage());
     }

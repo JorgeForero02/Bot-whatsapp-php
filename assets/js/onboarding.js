@@ -18,17 +18,34 @@ const INDUSTRY_PROMPTS = {
 let progressData = null;
 let currentStepName = null;
 
+function showOnboardingError(title, detail) {
+    var c = document.getElementById('wizard-container');
+    if (!c) return;
+    var safe = String(detail).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0, 3000);
+    c.innerHTML = '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:0.5rem;padding:1.25rem;">'
+        + '<p style="font-weight:600;color:#b91c1c;margin:0 0 0.5rem;">' + title + '</p>'
+        + '<pre style="font-size:0.7rem;color:#dc2626;overflow:auto;max-height:12rem;white-space:pre-wrap;margin:0 0 0.75rem;background:#fff;padding:0.5rem;border-radius:0.25rem;border:1px solid #fca5a5;">' + safe + '</pre>'
+        + '<button onclick="loadProgress()" style="padding:0.375rem 0.875rem;background:#075E54;color:white;border:none;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">Reintentar</button>'
+        + '</div>';
+}
+
 async function loadProgress() {
     try {
-        const res  = await fetch(BASE_PATH + '/api/onboarding-progress.php');
-        const data = await res.json();
+        const res  = await fetch(BASE_PATH + '/api/onboarding-progress.php', { cache: 'no-store' });
+        const rawText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseErr) {
+            showOnboardingError('Error del servidor (respuesta no JSON):', rawText);
+            return;
+        }
         if (!data.success) throw new Error(data.error);
         progressData    = data.steps;
         currentStepName = data.current;
         renderWizard();
     } catch (e) {
-        document.getElementById('wizard-container').innerHTML =
-            `<div class="text-center py-12 text-red-500">Error al cargar: ${e.message}</div>`;
+        showOnboardingError('Error al cargar configuración:', e.message);
     }
 }
 
@@ -428,6 +445,11 @@ async function saveAndAdvanceCalendar() {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({service: 'google', client_id: clientId, client_secret: clientSecret, access_token: accessToken, refresh_token: refreshToken, calendar_id: calendarId})
     });
+    await fetch(BASE_PATH + '/api/save-settings.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({calendarEnabled: true})
+    });
     el.innerHTML = '<span class="text-sm text-accent">Credenciales guardadas correctamente.</span>';
     await advanceStep('calendar_setup');
 }
@@ -452,16 +474,23 @@ async function skipOnboardingStep(step) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({action: 'skip', step: step})
         });
-        const data = await res.json();
+        const rawText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseErr) {
+            showOnboardingError('Error del servidor al saltar paso "' + step + '":', rawText);
+            return;
+        }
         if (data.success) {
             progressData    = data.steps;
             currentStepName = data.current;
             renderWizard();
         } else {
-            await loadProgress();
+            showOnboardingError('No se pudo saltar el paso:', data.error || 'Error desconocido');
         }
     } catch (e) {
-        await loadProgress();
+        showOnboardingError('Error de red al saltar paso:', e.message);
     }
 }
 
@@ -473,18 +502,23 @@ async function advanceStep(step) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({action: 'complete', step: step})
         });
-        const data = await res.json();
+        const rawText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseErr) {
+            showOnboardingError('Error del servidor al completar paso "' + step + '":', rawText);
+            return;
+        }
         if (data.success) {
             progressData    = data.steps;
             currentStepName = data.current;
             renderWizard();
         } else {
-            console.error('advanceStep error:', data.error);
-            await loadProgress();
+            showOnboardingError('No se pudo completar el paso:', data.error || 'Error desconocido');
         }
     } catch (e) {
-        console.error('advanceStep fetch error:', e);
-        await loadProgress();
+        showOnboardingError('Error de red al completar paso:', e.message);
     }
 }
 

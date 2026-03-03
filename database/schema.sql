@@ -90,7 +90,8 @@ CAPACIDADES PRINCIPALES:
 
 TONO Y ESTILO:
 
-Profesional pero cercano, respuestas concisas y directas, siempre confirma las acciones realizadas.', 'text');
+Profesional pero cercano, respuestas concisas y directas, siempre confirma las acciones realizadas.', 'text')
+ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 -- Tabla de configuración de Google Calendar
 CREATE TABLE IF NOT EXISTS calendar_settings (
@@ -128,7 +129,7 @@ ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
 CREATE TABLE IF NOT EXISTS flow_nodes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    trigger_keywords JSON NOT NULL DEFAULT ('[]'),
+    trigger_keywords JSON NOT NULL,
     message_text TEXT NOT NULL,
     next_node_id INT NULL,
     is_root BOOLEAN DEFAULT FALSE,
@@ -148,7 +149,7 @@ CREATE TABLE IF NOT EXISTS flow_options (
     id INT AUTO_INCREMENT PRIMARY KEY,
     node_id INT NOT NULL,
     option_text VARCHAR(500) NOT NULL,
-    option_keywords JSON NOT NULL DEFAULT ('[]'),
+    option_keywords JSON NOT NULL,
     next_node_id INT NULL,
     position_order INT DEFAULT 0,
     FOREIGN KEY (node_id) REFERENCES flow_nodes(id) ON DELETE CASCADE,
@@ -233,7 +234,13 @@ INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
 ('timezone', 'America/Bogota', 'text'),
 ('welcome_message', 'Hola! Soy un asistente virtual. ¿En qué puedo ayudarte?', 'text'),
 ('fallback_message', 'Lo siento, no encontré información relevante. Un operador humano te atenderá pronto.', 'text'),
-('calendar_enabled', 'true', 'boolean')
+('calendar_enabled', 'false', 'boolean'),
+('confidence_threshold', '0.7', 'text'),
+('max_results', '5', 'text'),
+('chunk_size', '1000', 'text'),
+('auto_reply', 'true', 'boolean'),
+('temperature', '0.7', 'text'),
+('timeout', '30', 'text')
 ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 -- Tabla de estado del flujo de calendario

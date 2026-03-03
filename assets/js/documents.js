@@ -8,7 +8,7 @@ function viewDocument(id, name) {
   var bp = typeof BASE_PATH !== 'undefined' ? BASE_PATH : '';
   var body = '<div style="display:flex;align-items:center;justify-content:center;padding:2rem;"><div class="spinner"></div></div>';
   var backdrop = showModal({ title: _esc(name), size: 'lg', body: body });
-  fetch(bp + '/api/get-document-content.php?id=' + id)
+  fetch(bp + '/api/get-document-content.php?id=' + id, { cache: 'no-store' })
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (!data.success) throw new Error(data.error || 'Error');
@@ -113,7 +113,7 @@ function _deleteDocument(id) {
 
 function _loadStats() {
   var bp = typeof BASE_PATH !== 'undefined' ? BASE_PATH : '';
-  fetch(bp + '/api/get-stats.php')
+  fetch(bp + '/api/get-stats.php', { cache: 'no-store' })
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (!data.success || !data.stats) return;
@@ -133,7 +133,7 @@ function _loadDocuments() {
 
   grid.innerHTML = '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:3rem;"><div class="spinner spinner-lg"></div></div>';
 
-  fetch(bp + '/api/get-documents.php')
+  fetch(bp + '/api/get-documents.php', { cache: 'no-store' })
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (!data.success) throw new Error(data.error || 'Error');

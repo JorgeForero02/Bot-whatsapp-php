@@ -68,7 +68,7 @@ try {
         'message' => 'Reply sent successfully'
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $logger->error('Reply Error: ' . $e->getMessage());
     http_response_code(500);
     ob_clean();

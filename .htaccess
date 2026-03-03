@@ -1,4 +1,5 @@
 RewriteEngine On
+RewriteBase /whatsapp/
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
@@ -8,7 +9,19 @@ RewriteRule ^(.*)$ index.php [QSA,L]
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"
     Header set X-XSS-Protection "1; mode=block"
+    # Disable SiteGround SuperCacher / any CDN cache for this application
+    Header set X-Cache-Enabled "false"
+    Header set X-SG-Cache "nocache"
 </IfModule>
+
+# Prevent caching of all PHP files (API endpoints + views)
+<FilesMatch "\.php$">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "Thu, 01 Jan 1970 00:00:00 GMT"
+    </IfModule>
+</FilesMatch>
 
 <IfModule mod_php.c>
     php_value upload_max_filesize 10M

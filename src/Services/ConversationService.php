@@ -75,15 +75,27 @@ class ConversationService
     public function getAllConversations($status = null, $limit = 100)
     {
         $limit = (int) $limit;
+        $baseQuery = "SELECT c.*,
+            m.message_text AS last_message,
+            m.sender_type  AS last_sender_type,
+            m.created_at   AS last_message_created_at
+            FROM conversations c
+            LEFT JOIN messages m ON m.id = (
+                SELECT id FROM messages
+                WHERE conversation_id = c.id
+                ORDER BY created_at DESC
+                LIMIT 1
+            )";
+
         if ($status) {
             return $this->db->fetchAll(
-                "SELECT * FROM conversations WHERE status = :status ORDER BY last_message_at DESC LIMIT {$limit}",
+                $baseQuery . " WHERE c.status = :status ORDER BY c.last_message_at DESC LIMIT {$limit}",
                 [':status' => $status]
             );
         }
 
         return $this->db->fetchAll(
-            "SELECT * FROM conversations ORDER BY last_message_at DESC LIMIT {$limit}",
+            $baseQuery . " ORDER BY c.last_message_at DESC LIMIT {$limit}",
             []
         );
     }

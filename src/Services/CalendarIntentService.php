@@ -89,6 +89,16 @@ class CalendarIntentService
                         'original_response' => $message['content'] ?? null
                     ];
 
+                case 'reschedule_appointment':
+                    return [
+                        'intent' => 'reschedule',
+                        'extracted_data' => [
+                            'reason' => $arguments['reason'] ?? null
+                        ],
+                        'confidence' => 'high',
+                        'original_response' => $message['content'] ?? null
+                    ];
+
                 case 'cancel_appointment':
                     return [
                         'intent' => 'cancel',

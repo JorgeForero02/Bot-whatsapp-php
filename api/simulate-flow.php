@@ -45,7 +45,7 @@ try {
         'response' => $result['response'],
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $logger->error('simulate-flow error: ' . $e->getMessage());
     http_response_code(500);
     ob_clean();

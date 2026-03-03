@@ -32,7 +32,7 @@
             var bp = typeof BASE_PATH !== 'undefined' ? BASE_PATH : '';
 
             /* Onboarding */
-            var oRes  = await fetch(bp + '/api/onboarding-progress.php');
+            var oRes  = await fetch(bp + '/api/onboarding-progress.php', { cache: 'no-store' });
             var oData = await oRes.json();
             if (oData.success) {
                 var steps   = oData.steps || [];
@@ -54,7 +54,7 @@
             }
 
             /* Bot mode (classic/ai) — show/hide flow-builder nav item */
-            var sRes   = await fetch(bp + '/api/get-settings.php');
+            var sRes   = await fetch(bp + '/api/get-settings.php', { cache: 'no-store' });
             var sData  = await sRes.json();
             var isClassic = sData.success && sData.settings && sData.settings.botMode === 'classic';
 

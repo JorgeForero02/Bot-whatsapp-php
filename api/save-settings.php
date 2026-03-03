@@ -29,7 +29,8 @@ try {
         'timeout' => 'timeout',
         'contextMessagesCount' => 'context_messages_count',
         'calendarEnabled' => 'calendar_enabled',
-        'botMode' => 'bot_mode'
+        'botMode' => 'bot_mode',
+        'botName' => 'bot_name'
     ];
 
     foreach ($settingsMap as $jsonKey => $dbKey) {
@@ -55,7 +56,7 @@ try {
         'message' => 'Configuración guardada correctamente'
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     if (isset($logger)) {
         $logger->error('Save Settings Error: ' . $e->getMessage());
     }

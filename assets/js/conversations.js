@@ -73,9 +73,7 @@
       const s       = statusMap[conv.status] || statusMap.closed;
       const initial = (conv.contact_name || conv.phone_number || '?').charAt(0).toUpperCase();
       const name    = conv.contact_name || conv.phone_number || 'Sin nombre';
-      const preview = ((conv.recent_messages && conv.recent_messages.length > 0)
-        ? conv.recent_messages[conv.recent_messages.length - 1].message_text
-        : 'Sin mensajes').substring(0, 50);
+      const preview = (conv.last_message || 'Sin mensajes').substring(0, 50);
       const timeAgo = window.formatTimeAgo ? window.formatTimeAgo(new Date(conv.last_message_at)) : '';
       const isActive = currentConversationId === conv.id;
 
@@ -114,7 +112,7 @@
     const signal = loadConvsAbort.signal;
     try {
       const url = status ? `${bp}/api/get-conversations.php?status=${status}` : `${bp}/api/get-conversations.php`;
-      const res  = await fetch(url, { signal });
+      const res  = await fetch(url, { signal, cache: 'no-store' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Error');
       allConversations = data.conversations || [];
@@ -134,7 +132,7 @@
     const signal = refreshConvsAbort.signal;
     try {
       const url = status ? `${bp}/api/get-conversations.php?status=${status}` : `${bp}/api/get-conversations.php`;
-      const res  = await fetch(url, { signal });
+      const res  = await fetch(url, { signal, cache: 'no-store' });
       const data = await res.json();
       if (!data.success) return;
       allConversations = data.conversations || [];
@@ -186,7 +184,7 @@
             <span style="font-size:0.75rem;font-weight:600;${textColor}">Mensaje de voz</span>
           </div>
           <audio controls style="width:100%;max-width:260px;height:36px;border-radius:18px;">
-            <source src="${esc(msg.audio_url)}" type="audio/ogg">
+            <source src="${bp}${esc(msg.audio_url)}" type="audio/ogg">
           </audio>
           <details style="margin-top:0.5rem;">
             <summary style="cursor:pointer;font-size:0.75rem;${isUser ? 'color:var(--text-muted)' : 'color:rgba(255,255,255,0.7)'}">Ver transcripción</summary>
@@ -283,7 +281,7 @@
     autoRefreshHandle = visibilityInterval(async () => {
       if (!currentConversationId) return;
       try {
-        const res  = await fetch(`${bp}/api/check-updates.php?last_check=${encodeURIComponent(lastCheckTime)}&conversation_id=${currentConversationId}`);
+        const res  = await fetch(`${bp}/api/check-updates.php?last_check=${encodeURIComponent(lastCheckTime)}&conversation_id=${currentConversationId}`, { cache: 'no-store' });
         const data = await res.json();
         if (!data.success || !data.has_update) return;
         const chatMessages = $('chat-messages');
@@ -307,7 +305,7 @@
     stopConvsRefresh();
     convsRefreshHandle = visibilityInterval(async () => {
       try {
-        const res  = await fetch(`${bp}/api/check-conversation-updates.php?last_check=${encodeURIComponent(lastConvsCheck)}`);
+        const res  = await fetch(`${bp}/api/check-conversation-updates.php?last_check=${encodeURIComponent(lastConvsCheck)}`, { cache: 'no-store' });
         const data = await res.json();
         if (!data.success || !data.has_updates) return;
         await refreshConversations(currentFilter === 'all' ? null : currentFilter);
@@ -433,7 +431,7 @@
 
     if (newState) {
       try {
-        const res  = await fetch(`${bp}/api/check-openai-status.php`);
+        const res  = await fetch(`${bp}/api/check-openai-status.php`, { cache: 'no-store' });
         const data = await res.json();
         if (data.success && !data.can_enable_ai) {
           if (window.showToast) showToast('Fondos insuficientes en OpenAI. Por favor recarga tu cuenta.', 'warning');

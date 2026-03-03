@@ -14,17 +14,12 @@ try {
     }
 
     if ($conversationId) {
-        $conversation = $db->fetchOne(
-            'SELECT id, last_bot_message_at FROM conversations WHERE id = :id',
-            [':id' => $conversationId]
+        $newMsg = $db->fetchOne(
+            'SELECT id FROM messages WHERE conversation_id = :conv_id AND created_at > :last_check LIMIT 1',
+            [':conv_id' => $conversationId, ':last_check' => $lastCheck]
         );
-        
-        $hasUpdate = false;
-        if ($conversation && $conversation['last_bot_message_at']) {
-            $lastBotMessage = strtotime($conversation['last_bot_message_at']);
-            $lastCheckTime = strtotime($lastCheck);
-            $hasUpdate = $lastBotMessage > $lastCheckTime;
-        }
+
+        $hasUpdate = !empty($newMsg);
         
         ob_clean();
         echo json_encode([
@@ -34,10 +29,10 @@ try {
         ]);
     } else {
         $updatedConversations = $db->fetchAll(
-            'SELECT id FROM conversations WHERE last_bot_message_at > :last_check',
+            'SELECT DISTINCT conversation_id as id FROM messages WHERE created_at > :last_check',
             [':last_check' => $lastCheck]
         );
-        
+
         ob_clean();
         echo json_encode([
             'success' => true,
@@ -46,7 +41,7 @@ try {
         ]);
     }
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $logger->error('Check Updates Error: ' . $e->getMessage());
     http_response_code(500);
     ob_clean();

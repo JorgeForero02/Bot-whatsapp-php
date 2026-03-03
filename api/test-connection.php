@@ -43,11 +43,11 @@ try {
                     'status' => 'connected',
                     'message' => 'Conexión exitosa. Phone Number ID: ' . ($data['id'] ?? $creds['phone_number_id'])
                 ];
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $result = [
                     'success' => false,
                     'status' => 'error',
-                    'message' => 'Error de conexión con WhatsApp API'
+                    'message' => 'Error de conexión con WhatsApp API: ' . $e->getMessage()
                 ];
                 $logger->error('WhatsApp test connection error: ' . $e->getMessage());
             }
@@ -69,7 +69,7 @@ try {
                     'status' => 'connected',
                     'message' => 'Conexión exitosa con OpenAI. Modelo configurado: ' . $creds['model']
                 ];
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $statusMsg = 'Error de conexión con OpenAI';
                 if (strpos($e->getMessage(), '401') !== false) {
                     $statusMsg = 'API Key inválida';
@@ -79,7 +79,7 @@ try {
                 $result = [
                     'success' => false,
                     'status' => 'error',
-                    'message' => $statusMsg
+                    'message' => $statusMsg . ' — ' . $e->getMessage()
                 ];
                 $logger->error('OpenAI test connection error: ' . $e->getMessage());
             }
@@ -91,27 +91,36 @@ try {
                 break;
             }
             $creds = $credentialService->getGoogleOAuthCredentials();
-            $client = new \GuzzleHttp\Client(['verify' => false, 'timeout' => 10]);
             try {
-                $response = $client->get(
-                    'https://www.googleapis.com/calendar/v3/calendars/' . urlencode($creds['calendar_id']),
-                    ['headers' => ['Authorization' => 'Bearer ' . $creds['access_token']]]
+                $calService = new \App\Services\GoogleCalendarService(
+                    $creds['access_token'],
+                    $creds['calendar_id'] ?: 'primary',
+                    $logger,
+                    'America/Bogota',
+                    $creds['refresh_token'],
+                    $creds['client_id'],
+                    $creds['client_secret'],
+                    $db
                 );
-                $data = json_decode($response->getBody(), true);
+                $events = $calService->listUpcomingEvents(1);
                 $result = [
                     'success' => true,
                     'status' => 'connected',
-                    'message' => 'Conexión exitosa. Calendario: ' . ($data['summary'] ?? $creds['calendar_id'])
+                    'message' => 'Conexión exitosa con Google Calendar.'
                 ];
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $statusMsg = 'Error de conexión con Google Calendar';
                 if (strpos($e->getMessage(), '401') !== false) {
-                    $statusMsg = 'Token expirado o inválido. Reconecta con Google.';
+                    $statusMsg = 'Token expirado o inválido. Verifica tus credenciales de Google.';
+                } elseif (strpos($e->getMessage(), '403') !== false) {
+                    $statusMsg = 'Acceso denegado. Verifica los permisos del calendario.';
+                } elseif (strpos($e->getMessage(), '404') !== false) {
+                    $statusMsg = 'Calendario no encontrado. Verifica el Calendar ID.';
                 }
                 $result = [
                     'success' => false,
                     'status' => 'error',
-                    'message' => $statusMsg
+                    'message' => $statusMsg . ' — ' . $e->getMessage()
                 ];
                 $logger->error('Google Calendar test connection error: ' . $e->getMessage());
             }
@@ -121,7 +130,7 @@ try {
     ob_clean();
     echo json_encode($result);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     if (isset($logger)) {
         $logger->error('Test Connection Error: ' . $e->getMessage());
     }
@@ -129,6 +138,7 @@ try {
     ob_clean();
     echo json_encode([
         'success' => false,
-        'error' => 'Error al probar conexión'
+        'status' => 'error',
+        'message' => 'Error interno: ' . $e->getMessage()
     ]);
 }

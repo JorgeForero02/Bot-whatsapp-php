@@ -18,6 +18,12 @@ try {
 
     $conversationService = new ConversationService($db);
     
+    $totalRow = $db->fetchOne(
+        "SELECT COUNT(*) as total FROM messages WHERE conversation_id = :conversation_id",
+        [':conversation_id' => $conversationId]
+    );
+    $total = (int)($totalRow['total'] ?? 0);
+
     $messages = $db->fetchAll(
         "SELECT id, sender_type, message_text, audio_url, media_type, context_used, confidence_score, created_at 
          FROM messages 
@@ -33,10 +39,11 @@ try {
     echo json_encode([
         'success' => true,
         'messages' => $messages,
-        'has_more' => count($messages) === $limit
+        'has_more' => ($offset + $limit) < $total,
+        'total' => $total,
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $logger->error('Get Conversation Messages Error: ' . $e->getMessage());
     http_response_code(500);
     ob_clean();

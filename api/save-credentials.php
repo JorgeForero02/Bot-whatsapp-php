@@ -70,7 +70,7 @@ try {
         'message' => 'Credenciales guardadas exitosamente'
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     if (isset($logger)) {
         $logger->error('Save Credentials Error: ' . $e->getMessage());
     }

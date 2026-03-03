@@ -53,6 +53,8 @@ $includes = @(
     "prompts",
     "index.php",
     "webhook.php",
+    "router.php",
+    "check_system.php",
     ".htaccess",
     "composer.json"
 )

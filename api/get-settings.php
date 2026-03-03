@@ -23,8 +23,9 @@ try {
         'temperature' => 0.7,
         'timeout' => 30,
         'contextMessagesCount' => 5,
-        'calendarEnabled' => true,
-        'botMode' => 'ai'
+        'calendarEnabled' => false,
+        'botMode' => 'ai',
+        'botName' => 'WhatsApp Bot'
     ];
 
     foreach ($settings as $setting) {
@@ -68,6 +69,9 @@ try {
             case 'bot_mode':
                 $response['botMode'] = $setting['setting_value'];
                 break;
+            case 'bot_name':
+                $response['botName'] = $setting['setting_value'];
+                break;
         }
     }
 
@@ -77,7 +81,7 @@ try {
         'settings' => $response
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     if (isset($logger)) {
         $logger->error('Get Settings Error: ' . $e->getMessage());
     }

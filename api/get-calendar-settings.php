@@ -64,7 +64,7 @@ try {
     ob_clean();
     echo json_encode($response);
     
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     http_response_code(500);
     ob_clean();
     echo json_encode(['error' => 'Error al obtener configuración del calendario']);

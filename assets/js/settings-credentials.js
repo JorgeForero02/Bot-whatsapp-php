@@ -23,7 +23,7 @@ function updateStatus(elementId, status, message) {
 
 async function loadCredentials() {
     try {
-        const response = await fetch(BASE_PATH + '/api/get-credentials.php');
+        const response = await fetch(BASE_PATH + '/api/get-credentials.php', { cache: 'no-store' });
         const data = await response.json();
         if (!data.success) return;
 
@@ -79,7 +79,7 @@ async function testConnection(service) {
     updateStatus(statusMap[service], '', 'Probando...');
     
     try {
-        const response = await fetch(BASE_PATH + '/api/test-connection.php?service=' + service);
+        const response = await fetch(BASE_PATH + '/api/test-connection.php?service=' + service, { cache: 'no-store' });
         const data = await response.json();
         
         updateStatus(statusMap[service], data.status || (data.success ? 'connected' : 'error'), 

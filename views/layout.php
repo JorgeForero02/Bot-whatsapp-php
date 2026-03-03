@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle ?? 'WhatsApp Bot'; ?></title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
 
     <!-- ── Anti-FOUC: apply dark class BEFORE any CSS renders ── -->
     <script>
@@ -19,7 +20,7 @@
     <!-- BASE_PATH for JS -->
     <script>const BASE_PATH = '<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>';</script>
 
-    <!-- Tailwind (config must come before cdn script) -->
+    <!-- Tailwind CSS (local runtime if available, CDN fallback) -->
     <script>
         window.tailwind = window.tailwind || {};
         tailwind.config = {
@@ -36,7 +37,13 @@
             }
         };
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+<?php
+$twLocal = __DIR__ . '/../assets/js/vendor/tailwind.cdn.js';
+$twSrc   = file_exists($twLocal)
+    ? (defined('BASE_PATH') ? BASE_PATH : '') . '/assets/js/vendor/tailwind.cdn.js'
+    : 'https://cdn.tailwindcss.com';
+?>
+    <script src="<?php echo htmlspecialchars($twSrc, ENT_QUOTES); ?>"></script>
 
     <!-- Design System CSS -->
     <link rel="stylesheet" href="<?php echo defined('BASE_PATH') ? BASE_PATH : ''; ?>/assets/css/app.css">

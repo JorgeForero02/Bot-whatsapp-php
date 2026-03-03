@@ -261,8 +261,25 @@ class OpenAIService
             [
                 'type' => 'function',
                 'function' => [
+                    'name' => 'reschedule_appointment',
+                    'description' => 'El usuario quiere reagendar, mover, reprogramar o cambiar la fecha/hora de una cita existente. Ejemplos: "quiero reagendar", "cambiar mi cita", "moverla para otro día", "reprogramar", "cambiarla para el viernes"',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'reason' => [
+                                'type' => 'string',
+                                'description' => 'Motivo del reagendamiento si fue mencionado'
+                            ]
+                        ],
+                        'required' => []
+                    ]
+                ]
+            ],
+            [
+                'type' => 'function',
+                'function' => [
                     'name' => 'cancel_appointment',
-                    'description' => 'El usuario quiere cancelar, anular o reprogramar una cita existente',
+                    'description' => 'El usuario quiere cancelar o anular definitivamente una cita existente. NO usar para reagendar o cambiar la fecha.',
                     'parameters' => [
                         'type' => 'object',
                         'properties' => [

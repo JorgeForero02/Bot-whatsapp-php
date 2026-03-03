@@ -150,12 +150,12 @@ try {
         ob_clean();
         echo json_encode(['success' => true, 'message' => 'Configuración guardada exitosamente']);
         
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         $db->rollback();
         throw $e;
     }
     
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     http_response_code(500);
     ob_clean();
     echo json_encode(['error' => 'Error al guardar configuración del calendario']);

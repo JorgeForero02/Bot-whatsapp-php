@@ -199,10 +199,10 @@ async function loadDashboard() {
   try {
     /* Stats */
     const [statsRes, convsRes, connRes, settingsRes] = await Promise.allSettled([
-      fetch(bp + '/api/get-stats.php'),
-      fetch(bp + '/api/get-conversations.php?limit=6'),
-      fetch(bp + '/api/test-connection.php?service=whatsapp'),
-      fetch(bp + '/api/get-settings.php'),
+      fetch(bp + '/api/get-stats.php', { cache: 'no-store' }),
+      fetch(bp + '/api/get-conversations.php?limit=6', { cache: 'no-store' }),
+      fetch(bp + '/api/test-connection.php?service=whatsapp', { cache: 'no-store' }),
+      fetch(bp + '/api/get-settings.php', { cache: 'no-store' }),
     ]);
 
     /* Stats */
@@ -246,9 +246,9 @@ async function loadDashboard() {
     let waOk = null, oaiOk = null, gcOk = null;
     try {
       const [waRes, oaiRes, gcRes] = await Promise.allSettled([
-        fetch(bp + '/api/test-connection.php?service=whatsapp'),
-        fetch(bp + '/api/test-connection.php?service=openai'),
-        fetch(bp + '/api/test-connection.php?service=google'),
+        fetch(bp + '/api/test-connection.php?service=whatsapp', { cache: 'no-store' }),
+        fetch(bp + '/api/test-connection.php?service=openai', { cache: 'no-store' }),
+        fetch(bp + '/api/test-connection.php?service=google', { cache: 'no-store' }),
       ]);
       const parse = async r => { if (r.status === 'fulfilled') { try { const d = await r.value.json(); return d.success; } catch { return null; } } return null; };
       waOk  = await parse(waRes);
@@ -260,7 +260,7 @@ async function loadDashboard() {
     /* Calendar events — only if enabled (API may not exist, silently ignore) */
     if (calendarEnabled) {
       try {
-        const gcEvRes = await fetch(bp + '/api/get-calendar-settings.php');
+        const gcEvRes = await fetch(bp + '/api/get-calendar-settings.php', { cache: 'no-store' });
         const gcEvData = await gcEvRes.json();
         renderCalendarEvents(gcEvData.upcoming_events || [], true);
       } catch(_) { renderCalendarEvents([], true); }
@@ -276,7 +276,7 @@ async function loadDashboard() {
 /* ── Onboarding banner ── */
 async function loadOnboardingBanner() {
   try {
-    const res  = await fetch(bp + '/api/onboarding-progress.php');
+    const res  = await fetch(bp + '/api/onboarding-progress.php', { cache: 'no-store' });
     const data = await res.json();
     if (!data.success) return;
 
@@ -284,16 +284,7 @@ async function loadOnboardingBanner() {
     if (!banner) return;
 
     if (data.complete) {
-      banner.style.display = '';
-      banner.innerHTML = `
-        <div class="alert alert-success" style="justify-content:space-between;">
-          <span class="alert-icon"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg></span>
-          <div style="flex:1;">
-            <p style="font-weight:600;">Configuración completa</p>
-            <p style="font-size:0.8125rem;opacity:0.85;">Tu bot está activo y correctamente configurado.</p>
-          </div>
-          <a href="${bp}/onboarding" style="font-size:0.8125rem;font-weight:500;text-decoration:underline;flex-shrink:0;">Reconfigurar</a>
-        </div>`;
+      return;
     } else {
       const steps = data.steps || [];
       const done  = steps.filter(s => s.is_completed || s.is_skipped).length;

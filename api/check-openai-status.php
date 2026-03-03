@@ -20,7 +20,7 @@ try {
         'can_enable_ai' => $status !== 'insufficient_funds'
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     if (isset($logger)) {
         $logger->error('Check OpenAI Status Error: ' . $e->getMessage());
     }

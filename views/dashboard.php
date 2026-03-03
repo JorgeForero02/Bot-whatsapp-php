@@ -148,7 +148,11 @@ $content = ob_get_clean();
 $scripts = '';
 
 /* Load Chart.js 4.4.4 before page scripts */
-$extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>';
+$localChart = __DIR__ . '/../assets/js/vendor/chart.umd.min.js';
+$chartSrc   = file_exists($localChart)
+    ? (defined('BASE_PATH') ? BASE_PATH : '') . '/assets/js/vendor/chart.umd.min.js'
+    : 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+$extraHead = '<script src="' . htmlspecialchars($chartSrc, ENT_QUOTES) . '"></script>';
 
 $extraScripts = '<script src="' . (defined('BASE_PATH') ? BASE_PATH : '') . '/assets/js/dashboard.js"></script>';
 

@@ -29,7 +29,7 @@ try {
     ob_clean();
     echo json_encode(['success' => true]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $logger->error('delete-flow error: ' . $e->getMessage());
     http_response_code(500);
     ob_clean();

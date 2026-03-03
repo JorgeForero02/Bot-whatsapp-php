@@ -47,7 +47,7 @@ try {
         // Removed: business_account_id, app_secret, temperature, max_tokens, timeout, redirect_uri
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     if (isset($logger)) {
         $logger->error('Get Credentials Error: ' . $e->getMessage());
     }

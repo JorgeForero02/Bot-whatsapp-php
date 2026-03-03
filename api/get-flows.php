@@ -14,7 +14,7 @@ try {
     ob_clean();
     echo json_encode(['success' => true, 'nodes' => $nodes]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $logger->error('get-flows error: ' . $e->getMessage());
     http_response_code(500);
     ob_clean();
