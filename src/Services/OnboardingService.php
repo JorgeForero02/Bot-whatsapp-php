@@ -119,7 +119,6 @@ class OnboardingService
         try {
             $botMode = $this->getSetting('bot_mode', 'ai');
 
-            // Auto-skip calendar_setup only if calendar is disabled AND user hasn't touched this step yet
             $calRow = $this->db->fetchOne(
                 "SELECT is_completed, is_skipped FROM onboarding_progress WHERE step_name = 'calendar_setup'", []
             );
@@ -130,7 +129,6 @@ class OnboardingService
                 }
             }
 
-            // Auto-skip flow_builder in AI mode only if user hasn't touched this step yet
             if ($botMode !== 'classic') {
                 $row = $this->db->fetchOne(
                     "SELECT is_completed, is_skipped FROM onboarding_progress WHERE step_name = 'flow_builder'", []
@@ -140,7 +138,6 @@ class OnboardingService
                 }
             }
 
-            // Auto-skip openai_credentials in classic mode only if user hasn't touched this step yet
             if ($botMode === 'classic') {
                 $row = $this->db->fetchOne(
                     "SELECT is_completed, is_skipped FROM onboarding_progress WHERE step_name = 'openai_credentials'", []

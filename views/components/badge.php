@@ -1,13 +1,4 @@
 <?php
-/**
- * Badge component
- *
- * Props (array):
- *   variant  string  success|warning|error|neutral|info  (default: neutral)
- *   label    string  Badge text
- *   dot      bool    Show status dot before text (default: false)
- *   extra_class string
- */
 
 $variant     = $props['variant']     ?? 'neutral';
 $label       = $props['label']       ?? '';

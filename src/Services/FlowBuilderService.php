@@ -162,59 +162,66 @@ class FlowBuilderService
             throw new \InvalidArgumentException('JSON de importación inválido: falta el array "nodes".');
         }
 
-        $this->db->query("DELETE FROM flow_options", []);
-        $this->db->query("DELETE FROM flow_nodes",   []);
+        $this->db->beginTransaction();
+        try {
+            $this->db->query("DELETE FROM flow_options", []);
+            $this->db->query("DELETE FROM flow_nodes",   []);
 
-        $oldToNew = [];
+            $oldToNew = [];
 
-        foreach ($data['nodes'] as $node) {
-            $oldId = (int)$node['id'];
+            foreach ($data['nodes'] as $node) {
+                $oldId = (int)$node['id'];
 
-            $newId = $this->db->insert('flow_nodes', [
-                'name'              => $node['name'],
-                'trigger_keywords'  => json_encode($node['trigger_keywords'] ?? []),
-                'message_text'      => $node['message_text'],
-                'next_node_id'      => null,
-                'is_root'           => (int)($node['is_root'] ?? false),
-                'requires_calendar' => (int)($node['requires_calendar'] ?? false),
-                'match_any_input'   => (int)($node['match_any_input'] ?? false),
-                'position_order'    => (int)($node['position_order'] ?? 0),
-                'is_active'         => (int)($node['is_active'] ?? true),
-            ]);
+                $newId = $this->db->insert('flow_nodes', [
+                    'name'              => $node['name'],
+                    'trigger_keywords'  => json_encode($node['trigger_keywords'] ?? []),
+                    'message_text'      => $node['message_text'],
+                    'next_node_id'      => null,
+                    'is_root'           => (int)($node['is_root'] ?? false),
+                    'requires_calendar' => (int)($node['requires_calendar'] ?? false),
+                    'match_any_input'   => (int)($node['match_any_input'] ?? false),
+                    'position_order'    => (int)($node['position_order'] ?? 0),
+                    'is_active'         => (int)($node['is_active'] ?? true),
+                ]);
 
-            $oldToNew[$oldId] = $newId;
-        }
+                $oldToNew[$oldId] = $newId;
+            }
 
-        foreach ($data['nodes'] as $node) {
-            $oldId = (int)$node['id'];
-            $newId = $oldToNew[$oldId];
+            foreach ($data['nodes'] as $node) {
+                $oldId = (int)$node['id'];
+                $newId = $oldToNew[$oldId];
 
-            if (!empty($node['next_node_id'])) {
-                $newNext = $oldToNew[(int)$node['next_node_id']] ?? null;
-                if ($newNext) {
-                    $this->db->query(
-                        "UPDATE flow_nodes SET next_node_id = :next WHERE id = :id",
-                        [':next' => $newNext, ':id' => $newId]
-                    );
+                if (!empty($node['next_node_id'])) {
+                    $newNext = $oldToNew[(int)$node['next_node_id']] ?? null;
+                    if ($newNext) {
+                        $this->db->query(
+                            "UPDATE flow_nodes SET next_node_id = :next WHERE id = :id",
+                            [':next' => $newNext, ':id' => $newId]
+                        );
+                    }
+                }
+
+                foreach ($node['options'] ?? [] as $i => $opt) {
+                    $optNext = !empty($opt['next_node_id']) ? ($oldToNew[(int)$opt['next_node_id']] ?? null) : null;
+                    $this->db->insert('flow_options', [
+                        'node_id'         => $newId,
+                        'option_text'     => $opt['option_text'],
+                        'option_keywords' => json_encode($opt['option_keywords'] ?? []),
+                        'next_node_id'    => $optNext,
+                        'position_order'  => (int)($opt['position_order'] ?? $i),
+                    ]);
                 }
             }
 
-            foreach ($node['options'] ?? [] as $i => $opt) {
-                $optNext = !empty($opt['next_node_id']) ? ($oldToNew[(int)$opt['next_node_id']] ?? null) : null;
-                $this->db->insert('flow_options', [
-                    'node_id'         => $newId,
-                    'option_text'     => $opt['option_text'],
-                    'option_keywords' => json_encode($opt['option_keywords'] ?? []),
-                    'next_node_id'    => $optNext,
-                    'position_order'  => (int)($opt['position_order'] ?? $i),
-                ]);
-            }
+            $imported = count($data['nodes']);
+            $this->logger->info('FlowBuilder: flow imported', ['nodes' => $imported]);
+
+            $this->db->commit();
+            return ['imported_nodes' => $imported, 'id_map' => $oldToNew];
+        } catch (\Throwable $e) {
+            $this->db->rollback();
+            throw $e;
         }
-
-        $imported = count($data['nodes']);
-        $this->logger->info('FlowBuilder: flow imported', ['nodes' => $imported]);
-
-        return ['imported_nodes' => $imported, 'id_map' => $oldToNew];
     }
 
     private function validateNodeData(array $data): void

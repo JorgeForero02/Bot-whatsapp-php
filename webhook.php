@@ -15,6 +15,7 @@ use App\Services\CredentialService;
 use App\Services\CalendarIntentService;
 use App\Services\ClassicBotService;
 use App\Handlers\CalendarFlowHandler;
+use App\Handlers\ClassicCalendarFlowHandler;
 
 header('Content-Type: application/json');
 
@@ -347,39 +348,58 @@ try {
 
         if ($botMode === 'classic') {
             try {
-                $calendarService = getCalendarService($logger, $db, $credentialService, $calendarConfig);
-                $classicFlowHandler = null;
+                $calendarService    = getCalendarService($logger, $db, $credentialService, $calendarConfig);
+                $classicCalHandler  = null;
+                $timezone           = $calendarConfig['timezone'] ?? 'America/Bogota';
 
-                // STEP 1: Check active calendar flow BEFORE ClassicBotService (fixes PROBLEMA 2)
                 if ($calendarService) {
-                    $classicFlowHandler = new CalendarFlowHandler(
-                        $db, $logger, $calendarService, $openai, $calendarConfig, $conversationService
-                    );
-                    $calendarFlowState = $classicFlowHandler->getFlowState($messageData['from']);
+                    $classicCalHandler = new ClassicCalendarFlowHandler($db, $logger, $calendarService, $timezone);
 
-                    if ($calendarFlowState) {
-                        $calFlowResult = $classicFlowHandler->handleActiveFlow(
-                            $calendarFlowState, $messageData['text'], $conversation, $messageData
+                    if ($classicCalHandler->hasActiveSession($messageData['from'])) {
+                        $calResult = $classicCalHandler->handleStep(
+                            $messageData['text'],
+                            $messageData['from'],
+                            $messageData['contact_name']
                         );
 
-                        if ($calFlowResult['handled']) {
-                            $whatsapp->sendMessage($messageData['from'], $calFlowResult['response']);
+                        if (empty($calResult['exited'])) {
+                            $whatsapp->sendMessage($messageData['from'], $calResult['response']);
                             $conversationService->addMessage(
-                                $conversation['id'], 'bot', $calFlowResult['response'], null, null, 1.0
+                                $conversation['id'], 'bot', $calResult['response'], null, null, 1.0
                             );
                             $db->query(
                                 'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
                                 [':id' => $conversation['id']]
                             );
                             http_response_code(200);
-                            echo json_encode(['status' => $calFlowResult['status']]);
+                            echo json_encode(['status' => 'classic_calendar_step']);
                             exit;
                         }
+
+                        $db->query(
+                            "DELETE FROM classic_flow_sessions WHERE user_phone = :phone",
+                            [':phone' => $messageData['from']]
+                        );
+                        $exitBot    = new ClassicBotService($db, $logger);
+                        $exitResult = $exitBot->processMessage('menu', $messageData['from']);
+                        $exitMsg    = !empty($exitResult['response'])
+                            ? $exitResult['response']
+                            : "Escribe el número de tu opción o escríbeme lo que necesitas.";
+                        $whatsapp->sendMessage($messageData['from'], $exitMsg);
+                        $conversationService->addMessage(
+                            $conversation['id'], 'bot', $exitMsg, null, null, 1.0
+                        );
+                        $db->query(
+                            'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                            [':id' => $conversation['id']]
+                        );
+                        http_response_code(200);
+                        echo json_encode(['status' => 'classic_calendar_exited']);
+                        exit;
                     }
                 }
 
-                // STEP 2: No active calendar flow — process with ClassicBot
-                $classicBot = new ClassicBotService($db, $logger);
+                $classicBot    = new ClassicBotService($db, $logger);
                 $classicResult = $classicBot->processMessage($messageData['text'], $messageData['from']);
 
                 if ($classicResult['type'] === 'response' || $classicResult['type'] === 'fallback') {
@@ -397,53 +417,17 @@ try {
                 }
 
                 if ($classicResult['type'] === 'calendar') {
-                    if ($calendarService) {
-                        $flowHandler = $classicFlowHandler ?? new CalendarFlowHandler(
-                            $db, $logger, $calendarService, $openai, $calendarConfig, $conversationService
-                        );
+                    $intent = $classicResult['calendar_intent'] ?? 'schedule';
 
-                        $extractedData = [];
-                        try {
-                            $systemPromptRow = $db->fetchOne(
-                                "SELECT setting_value FROM settings WHERE setting_key = 'system_prompt'",
-                                []
-                            );
-                            $sysPrompt = $systemPromptRow['setting_value'] ?? 'Eres un asistente virtual útil y amigable.';
-                            if (file_exists(__DIR__ . '/prompts/calendar_prompt.txt')) {
-                                $sysPrompt .= "\n\n" . file_get_contents(__DIR__ . '/prompts/calendar_prompt.txt');
-                            }
-
-                            $intentService = new CalendarIntentService($openai, $logger);
-                            $intent = $intentService->detectIntent($messageData['text'], [], $sysPrompt);
-
-                            if ($intent['intent'] === 'schedule' || $intent['intent'] === 'none') {
-                                $extractedData = $intent['extracted_data'] ?? [];
-                            }
-                        } catch (\Throwable $e) {
-                            $logger->warning('Classic calendar: intent detection failed, proceeding without extracted data: ' . $e->getMessage());
-                        }
-
-                        $flowResult = $flowHandler->startFlow('schedule', $extractedData, $conversation, $messageData);
-
-                        if ($flowResult['handled']) {
-                            $combinedMessage = $classicResult['response'] . "\n\n" . $flowResult['response'];
-                            $whatsapp->sendMessage($messageData['from'], $combinedMessage);
-                            $conversationService->addMessage(
-                                $conversation['id'], 'bot', $combinedMessage, null, null, 1.0
-                            );
-                        } else {
-                            $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
-                            $conversationService->addMessage(
-                                $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
-                            );
-                        }
+                    if ($classicCalHandler) {
+                        $calResult = $classicCalHandler->start($intent, $messageData['from'], $messageData['contact_name']);
+                        $msg = $calResult['response'];
                     } else {
-                        $whatsapp->sendMessage($messageData['from'], $classicResult['response']);
-                        $conversationService->addMessage(
-                            $conversation['id'], 'bot', $classicResult['response'], null, null, 1.0
-                        );
+                        $msg = $classicResult['response'];
                     }
 
+                    $whatsapp->sendMessage($messageData['from'], $msg);
+                    $conversationService->addMessage($conversation['id'], 'bot', $msg, null, null, 1.0);
                     $db->query(
                         'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
                         [':id' => $conversation['id']]

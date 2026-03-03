@@ -44,7 +44,6 @@ try {
             'calendar_id'     => $google['calendar_id'],
             'has_credentials' => $credentialService->hasGoogleOAuthCredentials(),
         ]
-        // Removed: business_account_id, app_secret, temperature, max_tokens, timeout, redirect_uri
     ]);
 
 } catch (\Throwable $e) {

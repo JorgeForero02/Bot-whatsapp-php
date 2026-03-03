@@ -83,7 +83,6 @@ class CalendarFlowHandler
             ];
         }
 
-        // Si el mensaje es una nueva intención de agendar, limpiar flujo y dejar que el webhook lo procese como intent nuevo
         $step = $flowState['current_step'];
         if (in_array($step, [self::STEP_EXPECTING_DATE, self::STEP_EXPECTING_TIME, self::STEP_EXPECTING_SERVICE])
             && $this->isNewScheduleIntent($messageLower)
@@ -173,7 +172,6 @@ class CalendarFlowHandler
                 ];
             }
 
-            // Siempre pedir motivo antes de confirmar
             $this->saveFlowState($phone, self::STEP_EXPECTING_SERVICE, $conversation['id'], [
                 'extracted_date' => $date,
                 'extracted_time' => $time,
@@ -182,7 +180,6 @@ class CalendarFlowHandler
             ]);
 
             if ($service) {
-                // Ya tenemos motivo, pasar directo a confirmación
                 return $this->buildConfirmationStep($phone, $conversation['id'], $date, $time, $service, $eventTitle);
             }
 
@@ -229,7 +226,7 @@ class CalendarFlowHandler
 
         return [
             'handled' => true,
-            'response' => "Con gusto te agendo una cita. ¿Qué fecha y hora prefieres?\n\nEjemplos: \"mañana a las 3pm\", \"el viernes a las 10am\", \"15/03/2026 a las 14:00\"",
+            'response' => "Con gusto te agendo una cita. ¿Qué fecha prefieres?\n\nPuedes decirme:\n• *hoy*, *mañana*, *pasado mañana*\n• *el lunes*, *el próximo viernes*\n• *15/03/2026* o *15 de marzo*",
             'status' => 'expecting_date'
         ];
     }
@@ -249,7 +246,6 @@ class CalendarFlowHandler
                 ];
             }
 
-            // Try to extract time from the same message
             $time = $this->resolveTime($message);
             if ($time) {
                 $validation = $this->validateAppointment($date, $time);
@@ -312,7 +308,7 @@ class CalendarFlowHandler
 
         return [
             'handled' => true,
-            'response' => "No entendí esa fecha. Intenta con: 25/03/2026, mañana, o el viernes.",
+            'response' => "No entendí la fecha. Puedes escribir: *mañana*, *el lunes*, *25/03/2026*, *25 de marzo* o *en 3 días*.",
             'status' => 'event_flow_invalid_date'
         ];
     }
@@ -371,7 +367,6 @@ class CalendarFlowHandler
             ];
         }
 
-        // If no time found, check if message contains a new date+time to restart from
         $newDate = $this->resolveDate($message);
         if ($newDate && !empty($time = $this->resolveTime($message) ?? '')) {
             $validation = $this->validateAppointment($newDate, $time);
@@ -416,7 +411,7 @@ class CalendarFlowHandler
 
         return [
             'handled' => true,
-            'response' => "No entendí esa hora. Intenta con: 14:00 o 3pm",
+            'response' => "No entendí la hora. Puedes escribir: *14:00*, *3pm*, *a las 3*, *por la tarde*, *al mediodía*.",
             'status' => 'event_flow_invalid_time'
         ];
     }
@@ -506,7 +501,6 @@ class CalendarFlowHandler
             ];
         }
 
-        // unclear
         $attempts = intval($flowState['attempts']) + 1;
         $this->db->query(
             'UPDATE calendar_flow_state SET attempts = :attempts, expires_at = :expires WHERE user_phone = :phone',
@@ -670,7 +664,6 @@ class CalendarFlowHandler
                 50
             );
 
-            // Filtrar solo los eventos que pertenecen a este contacto
             $nameLower = mb_strtolower($contactName);
             $phoneLast = substr(preg_replace('/\D/', '', $phone), -7);
             $events = array_filter($allEvents, function($event) use ($nameLower, $phoneLast) {
@@ -1017,7 +1010,6 @@ class CalendarFlowHandler
             ];
         }
 
-        // unclear
         $attempts = intval($flowState['attempts']) + 1;
         $this->db->query(
             'UPDATE calendar_flow_state SET attempts = :attempts, expires_at = :expires WHERE user_phone = :phone',
@@ -1285,23 +1277,68 @@ class CalendarFlowHandler
         }
 
         $textLower = mb_strtolower(trim($input));
-        $timezone = new \DateTimeZone($this->calendarConfig['timezone']);
+        $timezone  = new \DateTimeZone($this->calendarConfig['timezone']);
+        $today     = new \DateTime('now', $timezone);
 
-        $relativeDays = [
-            'lunes' => 'monday', 'martes' => 'tuesday', 'miércoles' => 'wednesday', 'miercoles' => 'wednesday',
-            'jueves' => 'thursday', 'viernes' => 'friday', 'sábado' => 'saturday', 'sabado' => 'saturday',
-            'domingo' => 'sunday'
-        ];
+        // hoy / hoy mismo
+        if (preg_match('/\bhoy\b/', $textLower)) {
+            return $today->format('Y-m-d');
+        }
 
-        if (strpos($textLower, 'próxima semana') !== false || strpos($textLower, 'proxima semana') !== false) {
+        // mañana (but not "mañana temprano" as time — only if no time word follows immediately)
+        if (preg_match('/\bma[ñn]ana\b/', $textLower) && !preg_match('/\bpasado\s+ma[ñn]ana\b/', $textLower)) {
+            return (clone $today)->modify('+1 day')->format('Y-m-d');
+        }
+
+        // pasado mañana
+        if (preg_match('/\bpasado\s+ma[ñn]ana\b/', $textLower)) {
+            return (clone $today)->modify('+2 days')->format('Y-m-d');
+        }
+
+        // en X días / en X dias
+        if (preg_match('/\ben\s+(\d+)\s+d[ií]as?\b/', $textLower, $m)) {
+            return (clone $today)->modify('+' . intval($m[1]) . ' days')->format('Y-m-d');
+        }
+
+        // esta semana → lunes de esta semana si aún no pasó, si no próxima semana
+        if (preg_match('/\besta\s+semana\b/', $textLower)) {
+            $monday = (clone $today);
+            $dow = (int)$monday->format('N'); // 1=Mon … 7=Sun
+            if ($dow > 1) {
+                $monday->modify('monday this week');
+            }
+            if ($monday->format('Y-m-d') < $today->format('Y-m-d')) {
+                $monday->modify('+1 day'); // next available day this week
+            }
+            return $monday->format('Y-m-d');
+        }
+
+        // próxima semana / proxima semana
+        if (preg_match('/\bpr[oó]xima\s+semana\b/', $textLower)) {
             return (new \DateTime('next monday', $timezone))->format('Y-m-d');
         }
 
-        foreach ($relativeDays as $spanish => $english) {
-            if (strpos($textLower, $spanish) !== false) {
-                $date = new \DateTime("next {$english}", $timezone);
-                $today = new \DateTime('now', $timezone);
-                if ($date->format('Y-m-d') === $today->format('Y-m-d')) {
+        // día de la semana: [el] [próximo] lunes|martes|...
+        $relativeDays = [
+            'lunes'     => 'monday',
+            'martes'    => 'tuesday',
+            'mi[eé]rcoles' => 'wednesday',
+            'jueves'    => 'thursday',
+            'viernes'   => 'friday',
+            's[aá]bado' => 'saturday',
+            'domingo'   => 'sunday',
+        ];
+
+        foreach ($relativeDays as $spanishPattern => $english) {
+            if (preg_match('/\b' . $spanishPattern . '\b/', $textLower)) {
+                $isNext = preg_match('/\bpr[oó]ximo\b/', $textLower);
+                $date   = new \DateTime("next {$english}", $timezone);
+                // if today IS that weekday and no "próximo" keyword, use today
+                if (!$isNext && $today->format('l') === ucfirst($english)) {
+                    $date = clone $today;
+                }
+                // avoid returning today when "next X" lands on today
+                if (!$isNext && $date->format('Y-m-d') === $today->format('Y-m-d') && $today->format('l') !== ucfirst($english)) {
                     $date->modify('+7 days');
                 }
                 return $date->format('Y-m-d');
@@ -1319,38 +1356,69 @@ class CalendarFlowHandler
 
         $text = mb_strtolower(trim($input));
 
-        // With am/pm: "4pm", "4:30pm", "4 pm" — colon optional
+        // 1. HH:MM am/pm — e.g. "2:30pm", "10:00 am"
         if (preg_match('/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)/i', $text, $matches)) {
             $hour   = intval($matches[1]);
             $minute = isset($matches[2]) && $matches[2] !== '' ? intval($matches[2]) : 0;
             $ampm   = strtolower(str_replace('.', '', $matches[3]));
 
-            if ($ampm === 'pm' && $hour < 12) {
-                $hour += 12;
-            } elseif ($ampm === 'am' && $hour === 12) {
-                $hour = 0;
-            }
+            if ($ampm === 'pm' && $hour < 12) $hour += 12;
+            elseif ($ampm === 'am' && $hour === 12) $hour = 0;
 
             if ($hour >= 0 && $hour < 24 && $minute >= 0 && $minute < 60) {
                 return sprintf('%02d:%02d', $hour, $minute);
             }
         }
 
-        // Without am/pm: require explicit HH:MM colon format to avoid matching years
+        // 2. HH:MM 24h — e.g. "14:30", "9:00"
         if (preg_match('/\b(\d{1,2}):(\d{2})\b/', $text, $matches)) {
             $hour   = intval($matches[1]);
             $minute = intval($matches[2]);
-
             if ($hour >= 0 && $hour < 24 && $minute >= 0 && $minute < 60) {
                 return sprintf('%02d:%02d', $hour, $minute);
             }
         }
 
+        // 3. "a las X" / "las X" — bare hour, e.g. "a las 3", "las 14", "a las 10"
+        if (preg_match('/\b(?:a\s+)?las?\s+(\d{1,2})\b/', $text, $matches)) {
+            $hour = intval($matches[1]);
+            // if hour is ambiguous (1-7) assume PM for business context
+            if ($hour >= 1 && $hour <= 7) {
+                $hour += 12;
+            }
+            if ($hour >= 0 && $hour < 24) {
+                return sprintf('%02d:00', $hour);
+            }
+        }
+
+        // 4. bare standalone number that looks like an hour — "3", "10", "14"
+        if (preg_match('/^\s*(\d{1,2})\s*$/', $text, $matches)) {
+            $hour = intval($matches[1]);
+            if ($hour >= 1 && $hour <= 7) $hour += 12;
+            if ($hour >= 0 && $hour < 24) {
+                return sprintf('%02d:00', $hour);
+            }
+        }
+
+        // 5. Text phrases
         $timeWords = [
-            'mañana temprano' => '09:00', 'en la mañana' => '10:00', 'por la mañana' => '10:00',
-            'al mediodía' => '12:00', 'mediodia' => '12:00',
-            'en la tarde' => '15:00', 'por la tarde' => '15:00',
-            'en la noche' => '19:00', 'por la noche' => '19:00'
+            'madrugada'        => '06:00',
+            'temprano'         => '08:00',
+            'mañana temprano'  => '08:00',
+            'en la mañana'     => '10:00',
+            'por la mañana'    => '10:00',
+            'a media mañana'   => '10:30',
+            'mediodia'         => '12:00',
+            'mediodía'         => '12:00',
+            'al mediodía'      => '12:00',
+            'al mediodia'      => '12:00',
+            'en la tarde'      => '15:00',
+            'por la tarde'     => '15:00',
+            'a media tarde'    => '16:00',
+            'al atardecer'     => '18:00',
+            'en la noche'      => '19:00',
+            'por la noche'     => '19:00',
+            'en la madrugada'  => '06:00',
         ];
 
         foreach ($timeWords as $phrase => $time) {
@@ -1450,7 +1518,6 @@ class CalendarFlowHandler
             }
         } catch (\Exception $e) {
             $this->logger->warning('Calendar API check skipped: ' . $e->getMessage());
-            // Si la API falla (ej: token expirado), continuar sin verificar solapamiento
         }
 
         return ['valid' => true];

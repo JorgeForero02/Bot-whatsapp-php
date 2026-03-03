@@ -1,13 +1,4 @@
 <?php
-/**
- * Limpieza automática de archivos de audio antiguos.
- *
- * Elimina archivos de audio con más de 7 días de antigüedad
- * en uploads/audios/{contacto}_{phone}/ y remueve subdirectorios vacíos.
- *
- * Uso como cron job (ejecutar diariamente):
- *   0 3 * * * php /ruta/al/proyecto/workers/cleanup-audios.php
- */
 
 require_once __DIR__ . '/../vendor/autoload.php';
 

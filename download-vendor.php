@@ -1,16 +1,5 @@
 <?php
-/**
- * download-vendor.php — One-time script to self-host frontend assets.
- *
- * Run once after deploying to production, then DELETE this file.
- * Visit: https://yourdomain.com/download-vendor.php
- *
- * Downloads:
- *   - Tailwind CSS  → assets/css/tailwind.min.css
- *   - Chart.js UMD  → assets/js/vendor/chart.umd.min.js
- */
 
-// ── Basic security: only allow from command-line or with token ──────────────
 if (PHP_SAPI !== 'cli') {
     $token = $_GET['token'] ?? '';
     $expectedToken = getenv('DOWNLOAD_TOKEN') ?: 'download-assets-now';
@@ -20,7 +9,6 @@ if (PHP_SAPI !== 'cli') {
     }
 }
 
-// ── Asset definitions ───────────────────────────────────────────────────────
 $assets = [
     [
         'name'  => 'Tailwind CSS 3.4.1 (full)',
@@ -42,11 +30,9 @@ $assets = [
     ],
 ];
 
-// ── Create directories ──────────────────────────────────────────────────────
 @mkdir(__DIR__ . '/assets/css',        0755, true);
 @mkdir(__DIR__ . '/assets/js/vendor',  0755, true);
 
-// ── HTML output ─────────────────────────────────────────────────────────────
 header('Content-Type: text/html; charset=utf-8');
 echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">';
 echo '<title>Download Vendor Assets</title>';
@@ -59,10 +45,8 @@ echo '<p>Downloading assets to self-host. Please wait...</p><hr>';
 
 flush();
 
-// ── Download function ───────────────────────────────────────────────────────
 function downloadUrl($url)
 {
-    // Try curl first (more reliable for SSL on shared hosting)
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -87,7 +71,6 @@ function downloadUrl($url)
         $curlMsg = 'curl not available';
     }
 
-    // Fallback: file_get_contents
     $ctx = stream_context_create([
         'http' => [
             'timeout'    => 30,
@@ -106,7 +89,6 @@ function downloadUrl($url)
     return [false, $curlMsg . '; file_get_contents also failed'];
 }
 
-// ── Process each asset ──────────────────────────────────────────────────────
 $allOk = true;
 
 foreach ($assets as $asset) {
@@ -147,7 +129,6 @@ foreach ($assets as $asset) {
     }
 }
 
-// ── Summary ─────────────────────────────────────────────────────────────────
 echo '<hr><h2>Summary</h2>';
 foreach ($assets as $asset) {
     $exists = file_exists($asset['dest']);

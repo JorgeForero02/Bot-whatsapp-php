@@ -110,7 +110,11 @@ class ClassicBotService
 
         if ($node['requires_calendar']) {
             $this->clearSession($userPhone);
-            return ['type' => 'calendar', 'response' => $node['message_text']];
+            return [
+                'type'             => 'calendar',
+                'response'         => $node['message_text'],
+                'calendar_intent'  => $this->detectCalendarIntent($node),
+            ];
         }
 
         $this->saveSession($userPhone, $nodeId);
@@ -207,6 +211,34 @@ class ClassicBotService
     private function isExpired(string $expiresAt): bool
     {
         return strtotime($expiresAt) < time();
+    }
+
+    private function detectCalendarIntent(array $node): string
+    {
+        $name     = mb_strtolower($node['name'] ?? '');
+        $keywords = mb_strtolower($node['trigger_keywords'] ?? '');
+
+        $cancelPatterns    = ['cancel', 'anular', 'borrar', 'eliminar'];
+        $reschedulePatterns = ['reagendar', 'reprogramar', 'cambiar cita', 'mover cita', 'cambiar fecha'];
+        $listPatterns      = ['ver cita', 'mis cita', 'proxima', 'próxima', 'listar', 'consultar cita', 'agendado', 'que tengo'];
+
+        foreach ($cancelPatterns as $p) {
+            if (strpos($name, $p) !== false || strpos($keywords, $p) !== false) {
+                return 'cancel';
+            }
+        }
+        foreach ($reschedulePatterns as $p) {
+            if (strpos($name, $p) !== false || strpos($keywords, $p) !== false) {
+                return 'reschedule';
+            }
+        }
+        foreach ($listPatterns as $p) {
+            if (strpos($name, $p) !== false || strpos($keywords, $p) !== false) {
+                return 'list';
+            }
+        }
+
+        return 'schedule';
     }
 
     private function getFallbackMessage(): string

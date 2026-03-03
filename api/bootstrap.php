@@ -2,7 +2,6 @@
 
 ob_start();
 
-// Global handlers: catch any Throwable/fatal that escapes the API file's try/catch
 set_exception_handler(function(\Throwable $e) {
     while (ob_get_level() > 0) ob_end_clean();
     http_response_code(500);

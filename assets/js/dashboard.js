@@ -1,9 +1,7 @@
-/* Dashboard JS */
 (function() {
 
 const bp = typeof BASE_PATH !== 'undefined' ? BASE_PATH : '';
 
-/* ── Chart.js 4.4.4 ── */
 let chartInstance = null;
 
 function initChart(labels, data) {
@@ -68,13 +66,11 @@ function initChart(labels, data) {
   });
 }
 
-/* ── Stat card update ── */
 function setStatCard(id, value) {
   const el = document.getElementById(id);
   if (el) el.textContent = value;
 }
 
-/* ── Service status row ── */
 function renderServices(waOk, oaiOk, gcOk) {
   const services = [
     { label: 'WhatsApp',       ok: waOk,  href: bp + '/credentials',       icon: '<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z" clip-rule="evenodd"/></svg>' },
@@ -99,7 +95,6 @@ function renderServices(waOk, oaiOk, gcOk) {
   if (container) container.innerHTML = html;
 }
 
-/* ── Recent conversations ── */
 function renderRecentConvs(conversations) {
   const container = document.getElementById('recent-convs');
   if (!container) return;
@@ -145,7 +140,6 @@ function renderRecentConvs(conversations) {
   container.innerHTML = html;
 }
 
-/* ── Calendar events ── */
 function renderCalendarEvents(events, calendarEnabled) {
   const container = document.getElementById('calendar-events');
   if (!container) return;
@@ -187,17 +181,14 @@ function renderCalendarEvents(events, calendarEnabled) {
   container.innerHTML = html;
 }
 
-/* ── Escape helper ── */
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = String(text);
   return div.innerHTML;
 }
 
-/* ── Main load function ── */
 async function loadDashboard() {
   try {
-    /* Stats */
     const [statsRes, convsRes, connRes, settingsRes] = await Promise.allSettled([
       fetch(bp + '/api/get-stats.php', { cache: 'no-store' }),
       fetch(bp + '/api/get-conversations.php?limit=6', { cache: 'no-store' }),
@@ -205,7 +196,6 @@ async function loadDashboard() {
       fetch(bp + '/api/get-settings.php', { cache: 'no-store' }),
     ]);
 
-    /* Stats */
     if (statsRes.status === 'fulfilled') {
       const d = await statsRes.value.json();
       if (d.success && d.stats) {
@@ -215,7 +205,6 @@ async function loadDashboard() {
         setStatCard('sc-pending-val',  s.conversations.pending_human ?? '—');
         setStatCard('sc-docs-val',     s.documents.total ?? '—');
 
-        /* Chart data — use daily_messages if provided, else mock 7 days */
         const chartData   = s.daily_messages || Array(7).fill(0);
         const today       = new Date();
         const chartLabels = Array.from({ length: 7 }, (_, i) => {
@@ -227,7 +216,6 @@ async function loadDashboard() {
       }
     }
 
-    /* Recent conversations */
     if (convsRes.status === 'fulfilled') {
       const d = await convsRes.value.json();
       if (d.success) renderRecentConvs(d.conversations || []);
@@ -235,14 +223,12 @@ async function loadDashboard() {
       renderRecentConvs([]);
     }
 
-    /* Settings → calendar enabled + bot mode */
     let calendarEnabled = false;
     if (settingsRes.status === 'fulfilled') {
       const d = await settingsRes.value.json();
       if (d.success && d.settings) calendarEnabled = d.settings.calendarEnabled ?? false;
     }
 
-    /* Service statuses via test-connection */
     let waOk = null, oaiOk = null, gcOk = null;
     try {
       const [waRes, oaiRes, gcRes] = await Promise.allSettled([
@@ -257,7 +243,6 @@ async function loadDashboard() {
     } catch(_) {}
     renderServices(waOk, oaiOk, gcOk);
 
-    /* Calendar events — only if enabled (API may not exist, silently ignore) */
     if (calendarEnabled) {
       try {
         const gcEvRes = await fetch(bp + '/api/get-calendar-settings.php', { cache: 'no-store' });
@@ -273,7 +258,6 @@ async function loadDashboard() {
   }
 }
 
-/* ── Onboarding banner ── */
 async function loadOnboardingBanner() {
   try {
     const res  = await fetch(bp + '/api/onboarding-progress.php', { cache: 'no-store' });
@@ -306,11 +290,9 @@ async function loadOnboardingBanner() {
   } catch(e) { /* silently ignore */ }
 }
 
-/* ── Init ── */
 loadDashboard();
 loadOnboardingBanner();
 
-/* Visibility-aware auto-refresh every 30s */
 if (window.visibilityInterval) {
   visibilityInterval(loadDashboard, 30000);
 } else {

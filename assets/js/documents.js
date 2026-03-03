@@ -1,9 +1,3 @@
-/**
- * Documents page JS
- */
-
-/* ── Globals (called from onclick= in dynamic HTML) ── */
-
 function viewDocument(id, name) {
   var bp = typeof BASE_PATH !== 'undefined' ? BASE_PATH : '';
   var body = '<div style="display:flex;align-items:center;justify-content:center;padding:2rem;"><div class="spinner"></div></div>';
@@ -87,8 +81,6 @@ function uploadDocument() {
 
   xhr.send(formData);
 }
-
-/* ── Private helpers ── */
 
 function _esc(text) {
   var d = document.createElement('div');
@@ -220,7 +212,6 @@ function _resetUploadUI() {
   if (hint)         hint.textContent = 'Arrastra un archivo aquí o haz clic para seleccionar';
 }
 
-/* ── Init on DOM ready ── */
 document.addEventListener('DOMContentLoaded', function() {
   var dropZone  = document.getElementById('drop-zone');
   var fileInput = document.getElementById('file-input');

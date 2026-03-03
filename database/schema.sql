@@ -93,7 +93,6 @@ TONO Y ESTILO:
 Profesional pero cercano, respuestas concisas y directas, siempre confirma las acciones realizadas.', 'text')
 ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
--- Tabla de configuración de Google Calendar
 CREATE TABLE IF NOT EXISTS calendar_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     setting_key VARCHAR(100) NOT NULL UNIQUE,
@@ -101,7 +100,6 @@ CREATE TABLE IF NOT EXISTS calendar_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Configuración inicial de Calendar
 INSERT INTO calendar_settings (setting_key, setting_value) VALUES
 ('timezone', 'America/Bogota'),
 ('default_duration_minutes', '60'),
@@ -120,12 +118,10 @@ INSERT INTO calendar_settings (setting_key, setting_value) VALUES
 ('reminder_popup_minutes', '30')
 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
 
--- Bot mode setting
 INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
 ('bot_mode', 'ai', 'text')
 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
 
--- Flow nodes for Classic Bot mode
 CREATE TABLE IF NOT EXISTS flow_nodes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -146,7 +142,6 @@ CREATE TABLE IF NOT EXISTS flow_nodes (
     INDEX idx_match_any (match_any_input)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Options for each flow node (branching)
 CREATE TABLE IF NOT EXISTS flow_options (
     id INT AUTO_INCREMENT PRIMARY KEY,
     node_id INT NOT NULL,
@@ -160,7 +155,6 @@ CREATE TABLE IF NOT EXISTS flow_options (
     INDEX idx_position (position_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Session state for Classic Bot
 CREATE TABLE IF NOT EXISTS classic_flow_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_phone VARCHAR(50) NOT NULL,
@@ -173,7 +167,17 @@ CREATE TABLE IF NOT EXISTS classic_flow_sessions (
     INDEX idx_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Onboarding wizard progress
+CREATE TABLE IF NOT EXISTS classic_calendar_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_phone VARCHAR(50) NOT NULL UNIQUE,
+    step VARCHAR(50) NOT NULL,
+    data JSON,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS onboarding_progress (
     id INT AUTO_INCREMENT PRIMARY KEY,
     step_name VARCHAR(100) NOT NULL UNIQUE,
@@ -194,7 +198,6 @@ INSERT INTO onboarding_progress (step_name, step_order) VALUES
 ('go_live',              7)
 ON DUPLICATE KEY UPDATE step_order = VALUES(step_order);
 
--- Table for WhatsApp and OpenAI credentials
 CREATE TABLE IF NOT EXISTS bot_credentials (
     id INT AUTO_INCREMENT PRIMARY KEY,
     whatsapp_phone_number_id VARCHAR(255) DEFAULT '',
@@ -208,11 +211,9 @@ CREATE TABLE IF NOT EXISTS bot_credentials (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert default row so there's always a record to UPDATE
 INSERT INTO bot_credentials (id) VALUES (1)
 ON DUPLICATE KEY UPDATE id = 1;
 
--- Table for Google OAuth credentials
 CREATE TABLE IF NOT EXISTS google_oauth_credentials (
     id INT AUTO_INCREMENT PRIMARY KEY,
     client_id VARCHAR(255) DEFAULT '',
@@ -225,11 +226,9 @@ CREATE TABLE IF NOT EXISTS google_oauth_credentials (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert default row
 INSERT INTO google_oauth_credentials (id) VALUES (1)
 ON DUPLICATE KEY UPDATE id = 1;
 
--- Additional settings from credentials migration
 INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
 ('context_messages_count', '5', 'text'),
 ('business_name', 'Mi Negocio', 'text'),
@@ -245,7 +244,6 @@ INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
 ('timeout', '30', 'text')
 ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
--- Tabla de estado del flujo de calendario
 CREATE TABLE IF NOT EXISTS calendar_flow_state (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_phone VARCHAR(50) NOT NULL,
@@ -265,7 +263,6 @@ CREATE TABLE IF NOT EXISTS calendar_flow_state (
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Cache for query embeddings to avoid redundant OpenAI calls
 CREATE TABLE IF NOT EXISTS query_embedding_cache (
     query_hash VARCHAR(32) NOT NULL PRIMARY KEY,
     embedding MEDIUMBLOB NOT NULL,

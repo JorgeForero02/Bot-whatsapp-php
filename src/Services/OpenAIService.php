@@ -27,7 +27,7 @@ class OpenAIService
                 'Content-Type' => 'application/json'
             ],
             'timeout' => 30,
-            'verify' => false // Deshabilitado para desarrollo local
+            'verify' => false
         ]);
     }
 

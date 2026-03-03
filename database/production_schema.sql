@@ -1,11 +1,3 @@
--- phpMyAdmin SQL Dump
--- version 5.2.2
--- https://www.phpmyadmin.net/
---
--- Servidor: b1rubiph1crftroa3r5y-mysql.services.clever-cloud.com:3306
--- Tiempo de generación: 03-03-2026 a las 15:04:10
--- Versión del servidor: 8.0.22-13
--- Versión de PHP: 8.2.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -17,15 +9,8 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
---
--- Base de datos: `b1rubiph1crftroa3r5y`
---
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `bot_credentials`
---
 
 CREATE TABLE `bot_credentials` (
   `id` int NOT NULL,
@@ -40,18 +25,11 @@ CREATE TABLE `bot_credentials` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Volcado de datos para la tabla `bot_credentials`
---
 
 INSERT INTO `bot_credentials` (`id`, `whatsapp_phone_number_id`, `whatsapp_access_token`, `whatsapp_app_secret`, `whatsapp_verify_token`, `openai_api_key`, `openai_model`, `openai_embedding_model`, `created_at`, `updated_at`) VALUES
 (1, '945985608606607', 'FSZC8hRyRXMUdHouU9175kKht1ptDiuFSccdjeOhvMaFPMHCxVpyxFDaPtHWGLyH6FqQisAB/rqAB5YBn4TQ+c0EzqkLz+UqMB1WbqF9XcIG3gwqUAyoQH9aWWcZMcAPTsXarGNqYgBkRbamILX1YYekNyOfcIP2rSBM8RVQo+uteUZAe9h2bUqF6QmmNl0BbkJ7b/ehWMuvffUzsuS78Q9cr6tg51JFgH0CVPo0hiBpn/VulmTRNGY7MrScDPHr+Jb9FCyWFYyzFY+TcICkKEAoJrUjHiJjZhYCRFXG9Wg=', 'lMeT9gjFCD/uh6sW8KFBrqS9AY/0oGLy6DbB0dl+llV0tJmbpnisdX4zEQaf0pW8NdwHItGiyoK0VEShf20acg==', 'token', 'cGkmUsNd/rufNvh0aa3iEA+HBC/V7mOp4HMyqPmr6XDcMOZXdaCDwXweFNs1XkWbPEDzTp3NnZ9qz6QaX8+RMIg5rFj/c3X4yKhT1d1JA88BVjTo60agofiFrcePrk+GYOFsUCmOGqsO9zGrfWNXhNjLBl+iJ8C7bGNUFOqE7AEmfbeYWnNHFa1pKr62yGJrvGtJBy69iDrhuX5QkMEpiUtW1vYwMp4ls0F5zqZU59HOZKI9/h3e2UC0WCGD31Lg', 'gpt-3.5-turbo', 'text-embedding-ada-002', '2026-03-03 14:55:53', '2026-03-03 15:02:01');
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `calendar_flow_state`
---
 
 CREATE TABLE `calendar_flow_state` (
   `id` int NOT NULL,
@@ -69,11 +47,7 @@ CREATE TABLE `calendar_flow_state` (
   `expires_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `calendar_settings`
---
 
 CREATE TABLE `calendar_settings` (
   `id` int NOT NULL,
@@ -82,9 +56,6 @@ CREATE TABLE `calendar_settings` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Volcado de datos para la tabla `calendar_settings`
---
 
 INSERT INTO `calendar_settings` (`id`, `setting_key`, `setting_value`, `updated_at`) VALUES
 (1, 'timezone', 'America/Bogota', '2026-03-03 14:55:53'),
@@ -103,11 +74,7 @@ INSERT INTO `calendar_settings` (`id`, `setting_key`, `setting_value`, `updated_
 (14, 'reminder_popup_enabled', 'true', '2026-03-03 14:55:53'),
 (15, 'reminder_popup_minutes', '30', '2026-03-03 14:55:53');
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `classic_flow_sessions`
---
 
 CREATE TABLE `classic_flow_sessions` (
   `id` int NOT NULL,
@@ -118,11 +85,7 @@ CREATE TABLE `classic_flow_sessions` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `conversations`
---
 
 CREATE TABLE `conversations` (
   `id` int NOT NULL,
@@ -136,11 +99,7 @@ CREATE TABLE `conversations` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `documents`
---
 
 CREATE TABLE `documents` (
   `id` int NOT NULL,
@@ -156,11 +115,7 @@ CREATE TABLE `documents` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `flow_nodes`
---
 
 CREATE TABLE `flow_nodes` (
   `id` int NOT NULL,
@@ -176,11 +131,7 @@ CREATE TABLE `flow_nodes` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `flow_options`
---
 
 CREATE TABLE `flow_options` (
   `id` int NOT NULL,
@@ -191,11 +142,7 @@ CREATE TABLE `flow_options` (
   `position_order` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `google_oauth_credentials`
---
 
 CREATE TABLE `google_oauth_credentials` (
   `id` int NOT NULL,
@@ -209,18 +156,11 @@ CREATE TABLE `google_oauth_credentials` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Volcado de datos para la tabla `google_oauth_credentials`
---
 
 INSERT INTO `google_oauth_credentials` (`id`, `client_id`, `client_secret`, `access_token`, `refresh_token`, `token_expires_at`, `calendar_id`, `created_at`, `updated_at`) VALUES
 (1, '', NULL, NULL, NULL, NULL, '', '2026-03-03 14:55:53', '2026-03-03 14:55:53');
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `messages`
---
 
 CREATE TABLE `messages` (
   `id` int NOT NULL,
@@ -235,11 +175,7 @@ CREATE TABLE `messages` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `onboarding_progress`
---
 
 CREATE TABLE `onboarding_progress` (
   `id` int NOT NULL,
@@ -251,9 +187,6 @@ CREATE TABLE `onboarding_progress` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Volcado de datos para la tabla `onboarding_progress`
---
 
 INSERT INTO `onboarding_progress` (`id`, `step_name`, `step_order`, `is_completed`, `is_skipped`, `completed_at`, `created_at`) VALUES
 (1, 'whatsapp_credentials', 1, 1, 0, '2026-03-03 15:01:30', '2026-03-03 14:55:53'),
@@ -264,11 +197,7 @@ INSERT INTO `onboarding_progress` (`id`, `step_name`, `step_order`, `is_complete
 (6, 'test_connection', 6, 1, 0, '2026-03-03 15:02:31', '2026-03-03 14:55:53'),
 (7, 'go_live', 7, 1, 0, '2026-03-03 15:02:36', '2026-03-03 14:55:53');
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `query_embedding_cache`
---
 
 CREATE TABLE `query_embedding_cache` (
   `query_hash` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -278,11 +207,7 @@ CREATE TABLE `query_embedding_cache` (
   `hit_count` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `settings`
---
 
 CREATE TABLE `settings` (
   `id` int NOT NULL,
@@ -292,9 +217,6 @@ CREATE TABLE `settings` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Volcado de datos para la tabla `settings`
---
 
 INSERT INTO `settings` (`id`, `setting_key`, `setting_type`, `setting_value`, `updated_at`) VALUES
 (1, 'bot_name', 'text', 'Romeral', '2026-03-03 15:02:14'),
@@ -319,11 +241,7 @@ INSERT INTO `settings` (`id`, `setting_key`, `setting_type`, `setting_value`, `u
 (20, 'temperature', 'text', '0.7', '2026-03-03 14:55:53'),
 (21, 'timeout', 'text', '30', '2026-03-03 14:55:53');
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `vectors`
---
 
 CREATE TABLE `vectors` (
   `id` int NOT NULL,
@@ -334,53 +252,32 @@ CREATE TABLE `vectors` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Índices para tablas volcadas
---
 
---
--- Indices de la tabla `bot_credentials`
---
 ALTER TABLE `bot_credentials`
   ADD PRIMARY KEY (`id`);
 
---
--- Indices de la tabla `calendar_flow_state`
---
 ALTER TABLE `calendar_flow_state`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_phone` (`user_phone`),
   ADD KEY `idx_expires` (`expires_at`),
   ADD KEY `conversation_id` (`conversation_id`);
 
---
--- Indices de la tabla `calendar_settings`
---
 ALTER TABLE `calendar_settings`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `setting_key` (`setting_key`);
 
---
--- Indices de la tabla `classic_flow_sessions`
---
 ALTER TABLE `classic_flow_sessions`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_phone` (`user_phone`),
   ADD KEY `current_node_id` (`current_node_id`),
   ADD KEY `idx_expires` (`expires_at`);
 
---
--- Indices de la tabla `conversations`
---
 ALTER TABLE `conversations`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_phone` (`phone_number`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_last_message` (`last_message_at`);
 
---
--- Indices de la tabla `documents`
---
 ALTER TABLE `documents`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_file_hash` (`file_hash`),
@@ -388,9 +285,6 @@ ALTER TABLE `documents`
   ADD KEY `idx_file_type` (`file_type`),
   ADD KEY `idx_is_active` (`is_active`);
 
---
--- Indices de la tabla `flow_nodes`
---
 ALTER TABLE `flow_nodes`
   ADD PRIMARY KEY (`id`),
   ADD KEY `next_node_id` (`next_node_id`),
@@ -398,179 +292,95 @@ ALTER TABLE `flow_nodes`
   ADD KEY `idx_is_active` (`is_active`),
   ADD KEY `idx_position` (`position_order`);
 
---
--- Indices de la tabla `flow_options`
---
 ALTER TABLE `flow_options`
   ADD PRIMARY KEY (`id`),
   ADD KEY `next_node_id` (`next_node_id`),
   ADD KEY `idx_node` (`node_id`),
   ADD KEY `idx_position` (`position_order`);
 
---
--- Indices de la tabla `google_oauth_credentials`
---
 ALTER TABLE `google_oauth_credentials`
   ADD PRIMARY KEY (`id`);
 
---
--- Indices de la tabla `messages`
---
 ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_conversation` (`conversation_id`),
   ADD KEY `idx_created` (`created_at`),
   ADD KEY `idx_sender` (`sender_type`);
 
---
--- Indices de la tabla `onboarding_progress`
---
 ALTER TABLE `onboarding_progress`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `step_name` (`step_name`);
 
---
--- Indices de la tabla `query_embedding_cache`
---
 ALTER TABLE `query_embedding_cache`
   ADD PRIMARY KEY (`query_hash`),
   ADD KEY `idx_last_used` (`last_used_at`);
 
---
--- Indices de la tabla `settings`
---
 ALTER TABLE `settings`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `setting_key` (`setting_key`);
 
---
--- Indices de la tabla `vectors`
---
 ALTER TABLE `vectors`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_document` (`document_id`),
   ADD KEY `idx_created` (`created_at`);
 
---
--- AUTO_INCREMENT de las tablas volcadas
---
 
---
--- AUTO_INCREMENT de la tabla `bot_credentials`
---
 ALTER TABLE `bot_credentials`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
---
--- AUTO_INCREMENT de la tabla `calendar_flow_state`
---
 ALTER TABLE `calendar_flow_state`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT de la tabla `calendar_settings`
---
 ALTER TABLE `calendar_settings`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
---
--- AUTO_INCREMENT de la tabla `classic_flow_sessions`
---
 ALTER TABLE `classic_flow_sessions`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT de la tabla `conversations`
---
 ALTER TABLE `conversations`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT de la tabla `documents`
---
 ALTER TABLE `documents`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT de la tabla `flow_nodes`
---
 ALTER TABLE `flow_nodes`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT de la tabla `flow_options`
---
 ALTER TABLE `flow_options`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT de la tabla `google_oauth_credentials`
---
 ALTER TABLE `google_oauth_credentials`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
---
--- AUTO_INCREMENT de la tabla `messages`
---
 ALTER TABLE `messages`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT de la tabla `onboarding_progress`
---
 ALTER TABLE `onboarding_progress`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
---
--- AUTO_INCREMENT de la tabla `settings`
---
 ALTER TABLE `settings`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
---
--- AUTO_INCREMENT de la tabla `vectors`
---
 ALTER TABLE `vectors`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
---
--- Restricciones para tablas volcadas
---
 
---
--- Filtros para la tabla `calendar_flow_state`
---
 ALTER TABLE `calendar_flow_state`
   ADD CONSTRAINT `calendar_flow_state_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE CASCADE;
 
---
--- Filtros para la tabla `classic_flow_sessions`
---
 ALTER TABLE `classic_flow_sessions`
   ADD CONSTRAINT `classic_flow_sessions_ibfk_1` FOREIGN KEY (`current_node_id`) REFERENCES `flow_nodes` (`id`) ON DELETE SET NULL;
 
---
--- Filtros para la tabla `flow_nodes`
---
 ALTER TABLE `flow_nodes`
   ADD CONSTRAINT `flow_nodes_ibfk_1` FOREIGN KEY (`next_node_id`) REFERENCES `flow_nodes` (`id`) ON DELETE SET NULL;
 
---
--- Filtros para la tabla `flow_options`
---
 ALTER TABLE `flow_options`
   ADD CONSTRAINT `flow_options_ibfk_1` FOREIGN KEY (`node_id`) REFERENCES `flow_nodes` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `flow_options_ibfk_2` FOREIGN KEY (`next_node_id`) REFERENCES `flow_nodes` (`id`) ON DELETE SET NULL;
 
---
--- Filtros para la tabla `messages`
---
 ALTER TABLE `messages`
   ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE CASCADE;
 
---
--- Filtros para la tabla `vectors`
---
 ALTER TABLE `vectors`
   ADD CONSTRAINT `vectors_ibfk_1` FOREIGN KEY (`document_id`) REFERENCES `documents` (`id`) ON DELETE CASCADE;
 COMMIT;
@@ -578,3 +388,4 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+

@@ -1,5 +1,4 @@
 (function() {
-    /* ── Show hamburger button on mobile ── */
     function checkMobile() {
         var btn = document.getElementById('sidebar-toggle');
         if (btn) btn.style.display = window.innerWidth < 768 ? 'flex' : 'none';
@@ -7,12 +6,10 @@
     checkMobile();
     window.addEventListener('resize', checkMobile);
 
-    /* ── Theme label sync ── */
     function syncThemeLabel() {
         var isDark  = document.documentElement.classList.contains('dark');
         var label   = document.getElementById('theme-label');
         if (label) label.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
-        /* sync hidden class on all theme icons */
         document.querySelectorAll('[data-theme-icon]').forEach(function(el) {
             var icon = el.getAttribute('data-theme-icon');
             if (icon === 'light') el.classList.toggle('hidden', !isDark);
@@ -20,18 +17,15 @@
         });
     }
     syncThemeLabel();
-    /* Re-sync whenever DarkMode.toggle() fires (it writes to localStorage) */
     var _origToggle = window.DarkMode && DarkMode.toggle;
     document.querySelectorAll('[data-action="toggle-dark"]').forEach(function(btn) {
         btn.addEventListener('click', function() { setTimeout(syncThemeLabel, 10); });
     });
 
-    /* ── Onboarding progress + bot mode ── */
     (async function() {
         try {
             var bp = typeof BASE_PATH !== 'undefined' ? BASE_PATH : '';
 
-            /* Onboarding */
             var oRes  = await fetch(bp + '/api/onboarding-progress.php', { cache: 'no-store' });
             var oData = await oRes.json();
             if (oData.success) {
@@ -53,7 +47,6 @@
                 }
             }
 
-            /* Bot mode (classic/ai) — show/hide flow-builder nav item */
             var sRes   = await fetch(bp + '/api/get-settings.php', { cache: 'no-store' });
             var sData  = await sRes.json();
             var isClassic = sData.success && sData.settings && sData.settings.botMode === 'classic';
@@ -61,7 +54,6 @@
             var flowLink = document.getElementById('nav-flow-builder');
             if (flowLink) flowLink.style.display = isClassic ? '' : 'none';
 
-            /* Update mode badge in sidebar */
             var modeBadge = document.getElementById('sidebar-mode-badge');
             if (modeBadge) modeBadge.textContent = isClassic ? 'Clásico' : 'IA';
 

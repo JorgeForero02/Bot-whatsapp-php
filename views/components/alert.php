@@ -1,14 +1,4 @@
 <?php
-/**
- * Alert component
- *
- * Props (array):
- *   variant     string  success|warning|error|info  (default: info)
- *   message     string  Main alert text
- *   dismissible bool    Show close button (default: false)
- *   id          string  Optional id
- *   extra_class string
- */
 
 $variant     = $props['variant']     ?? 'info';
 $message     = $props['message']     ?? '';

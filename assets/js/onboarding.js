@@ -102,8 +102,6 @@ function renderStep(stepObj) {
     bindStepEvents(stepObj.name);
 }
 
-// ------------------------------------------------------------------ STEP RENDERERS
-
 function stepCard(icon, title, subtitle, bodyHtml, footerHtml) {
     return `
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -305,8 +303,6 @@ function renderCompletionScreen() {
         </div>
     </div>`;
 }
-
-// ------------------------------------------------------------------ STEP ACTIONS
 
 function bindStepEvents(stepName) {
     if (stepName === 'openai_credentials') {

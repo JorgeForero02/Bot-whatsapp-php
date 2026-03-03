@@ -1,13 +1,8 @@
-/**
- * Conversations page JS
- * All logic extracted from views/conversations.php
- */
 (function () {
   'use strict';
 
   const bp = typeof BASE_PATH !== 'undefined' ? BASE_PATH : '';
 
-  /* ── State ── */
   let currentFilter         = 'all';
   let currentConversationId = null;
   let allConversations      = [];
@@ -20,17 +15,14 @@
   let loadConvsAbort        = null;
   let refreshConvsAbort      = null;
 
-  /* ── DOM refs (resolved lazily) ── */
   const $ = id => document.getElementById(id);
 
-  /* ── Helpers ── */
   function esc(text) {
     const d = document.createElement('div');
     d.textContent = String(text ?? '');
     return d.innerHTML;
   }
 
-  /* ── Filter buttons ── */
   function updateFilterButtons() {
     const map = { all: 'filter-all', active: 'filter-active', pending_human: 'filter-pending' };
     Object.entries(map).forEach(([key, id]) => {
@@ -44,7 +36,6 @@
     });
   }
 
-  /* ── Render conversation list ── */
   function renderConversationsList(conversations) {
     const container = $('conversations-list');
     if (!container) return;
@@ -105,7 +96,6 @@
     container.appendChild(fragment);
   }
 
-  /* ── Load conversations (manual: filtros, búsqueda, init) ── */
   async function loadConversations(status, abortPrevious = true) {
     if (abortPrevious && loadConvsAbort) { loadConvsAbort.abort(); }
     loadConvsAbort = new AbortController();
@@ -125,7 +115,6 @@
     }
   }
 
-  /* ── Refresh conversations (auto-refresh: no cancela requests manuales) ── */
   async function refreshConversations(status) {
     if (refreshConvsAbort) { refreshConvsAbort.abort(); }
     refreshConvsAbort = new AbortController();
@@ -142,13 +131,11 @@
     }
   }
 
-  /* ── Filter ── */
   window.filterConversations = function (status) {
     currentFilter = status;
     loadConversations(status === 'all' ? null : status, true);
   };
 
-  /* ── Search ── */
   const searchInput = $('search-conversations');
   if (searchInput) {
     searchInput.addEventListener('input', e => {
@@ -160,7 +147,6 @@
     });
   }
 
-  /* ── Message rendering ── */
   function renderMessages(messages) {
     if (!messages || messages.length === 0) {
       return `<div style="text-align:center;color:var(--text-muted);padding:2rem;font-size:0.875rem;">No hay mensajes en esta conversación</div>`;
@@ -214,7 +200,6 @@
     }).join('') + `</div>`;
   }
 
-  /* ── Load messages ── */
   async function loadMessages(conversationId, append = false) {
     try {
       const res  = await fetch(`${bp}/api/get-conversation-messages.php?id=${conversationId}&offset=${messagesOffset}&limit=20`);
@@ -262,7 +247,6 @@
     }
   }
 
-  /* ── Load more messages (scroll up) ── */
   window.loadMoreMessages = async function () {
     if (!currentConversationId || !hasMoreMessages) return;
     const btn = $('load-more-btn');
@@ -275,7 +259,6 @@
     if (btn) { btn.disabled = false; btn.textContent = 'Cargar mensajes anteriores'; }
   };
 
-  /* ── Auto-refresh: messages ── */
   function startAutoRefresh() {
     stopAutoRefresh();
     autoRefreshHandle = visibilityInterval(async () => {
@@ -300,7 +283,6 @@
     if (autoRefreshHandle) { autoRefreshHandle.stop(); autoRefreshHandle = null; }
   }
 
-  /* ── Auto-refresh: conversations list ── */
   function startConvsRefresh() {
     stopConvsRefresh();
     convsRefreshHandle = visibilityInterval(async () => {
@@ -318,7 +300,6 @@
     if (convsRefreshHandle) { convsRefreshHandle.stop(); convsRefreshHandle = null; }
   }
 
-  /* ── View conversation ── */
   window.viewConversation = async function (id, name, phone) {
     if (currentConversationId === id) return;
     currentConversationId = id;
@@ -326,7 +307,6 @@
 
     const conv = allConversations.find(c => c.id === id);
 
-    /* Desktop: show chat panel */
     const chatPanel = $('chat-panel');
     const listPanel = $('list-panel');
     if (chatPanel) chatPanel.classList.remove('hidden');
@@ -348,7 +328,6 @@
     const phoneEl = $('chat-contact-phone');
     if (phoneEl) phoneEl.textContent = phone;
 
-    /* AI toggle */
     const aiToggle = $('ai-toggle');
     if (aiToggle && conv) aiToggle.checked = parseInt(conv.ai_enabled) !== 0;
 
@@ -358,7 +337,6 @@
     startConvsRefresh();
   };
 
-  /* ── Close chat (mobile back) ── */
   window.closeChat = function () {
     const listPanel = $('list-panel');
     const chatPanel = $('chat-panel');
@@ -392,7 +370,6 @@
     renderConversationsList(allConversations);
   };
 
-  /* ── Send reply ── */
   window.sendReply = async function () {
     const textarea   = $('reply-input');
     const sendButton = $('send-btn');
@@ -423,7 +400,6 @@
     }
   };
 
-  /* ── Toggle AI ── */
   window.toggleAI = async function () {
     if (!currentConversationId) return;
     const aiToggle = $('ai-toggle');
@@ -458,7 +434,6 @@
     }
   };
 
-  /* ── Textarea auto-resize ── */
   const replyInput = $('reply-input');
   if (replyInput) {
     replyInput.addEventListener('input', function () {
@@ -470,10 +445,8 @@
     });
   }
 
-  /* ── Init ── */
   loadConversations(null, false);
 
-  /* Fallback periodic refresh (list only, not messages) */
   visibilityInterval(() => {
     if (!currentConversationId) {
       refreshConversations(currentFilter === 'all' ? null : currentFilter);

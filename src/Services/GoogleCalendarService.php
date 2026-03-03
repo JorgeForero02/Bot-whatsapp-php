@@ -35,7 +35,7 @@ class GoogleCalendarService
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ],
-            'verify' => false // Deshabilitado para desarrollo local
+            'verify' => false
         ]);
     }
 
@@ -46,7 +46,7 @@ class GoogleCalendarService
         }
 
         try {
-            $tokenClient = new Client(['verify' => false]); // Deshabilitado para desarrollo local
+            $tokenClient = new Client(['verify' => false]);
             $response = $tokenClient->post('https://oauth2.googleapis.com/token', [
                 'form_params' => [
                     'client_id' => $this->clientId,
@@ -239,7 +239,6 @@ class GoogleCalendarService
         ];
         
         foreach ($months as $monthName => $monthNum) {
-            // With year: "5 de marzo del 2026"
             if (preg_match('/(\d{1,2})\s+de\s+' . $monthName . '\s+(?:del?\s+)?(\d{4})/i', $dateText, $matches)) {
                 $day = intval($matches[1]);
                 $year = intval($matches[2]);
@@ -247,7 +246,6 @@ class GoogleCalendarService
                     return sprintf('%04d-%02d-%02d', $year, $monthNum, $day);
                 }
             }
-            // Without year: "5 de marzo" — use current year, or next year if date already passed
             if (preg_match('/(\d{1,2})\s+de\s+' . $monthName . '(?:\s|$)/i', $dateText, $matches)) {
                 $day = intval($matches[1]);
                 $tz = new \DateTimeZone($this->timezone);
@@ -434,6 +432,23 @@ class GoogleCalendarService
             'useDefault' => false,
             'overrides' => $overrides
         ];
+    }
+
+    public function rescheduleEvent(string $eventId, string $newStart, string $newEnd): array
+    {
+        try {
+            $result = $this->makeRequest('patch', "calendars/{$this->calendarId}/events/{$eventId}", [
+                'json' => [
+                    'start' => ['dateTime' => $newStart, 'timeZone' => $this->timezone],
+                    'end'   => ['dateTime' => $newEnd,   'timeZone' => $this->timezone],
+                ]
+            ]);
+            $this->logger->info('Event rescheduled successfully', ['event_id' => $eventId]);
+            return $result;
+        } catch (\Exception $e) {
+            $this->logger->error('Error rescheduling event: ' . $e->getMessage(), ['event_id' => $eventId]);
+            throw $e;
+        }
     }
 
     public function deleteEvent(string $eventId): bool
