@@ -13,49 +13,6 @@ ob_start();
 <div class="settings-grid">
     <div class="settings-main">
         <div class="card">
-          <div class="card-header">
-            <span class="card-title">Configuración RAG</span>
-          </div>
-          <div class="card-body">
-            
-            <div class="form-stack">
-                <div class="form-group">
-                    <label class="form-label">Umbral de Confianza Mínimo</label>
-                    <input type="range" id="confidence-threshold" min="0" max="1" step="0.05" value="0.7" class="range-input">
-                    <div class="range-labels">
-                        <span>0%</span>
-                        <span id="confidence-value" class="range-value">70%</span>
-                        <span>100%</span>
-                    </div>
-                    <p class="form-hint">Define el nivel mínimo de confianza para que el bot responda automáticamente.</p>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Número Máximo de Resultados de Búsqueda</label>
-                    <select id="max-results" class="form-select">
-                        <option value="3">3 resultados</option>
-                        <option value="5" selected>5 resultados</option>
-                        <option value="7">7 resultados</option>
-                        <option value="10">10 resultados</option>
-                    </select>
-                    <p class="form-hint">Cantidad de fragmentos recuperados de la base de conocimiento.</p>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Tamaño de Chunk (Fragmentos de Texto)</label>
-                    <select id="chunk-size" class="form-select">
-                        <option value="500">500 palabras</option>
-                        <option value="1000" selected>1000 palabras</option>
-                        <option value="1500">1500 palabras</option>
-                        <option value="2000">2000 palabras</option>
-                    </select>
-                    <p class="form-hint">Tamaño de los fragmentos de documentos. Chunks pequeños son más precisos, grandes dan más contexto.</p>
-                </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
           <div class="card-header"><span class="card-title">Prompt del Sistema</span></div>
           <div class="card-body">
             <div class="form-group">
@@ -70,17 +27,6 @@ ob_start();
           <div class="card-header"><span class="card-title">Respuestas Automáticas</span></div>
           <div class="card-body">
             <div class="form-stack">
-                <div class="toggle-row">
-                    <div>
-                        <p class="form-label" style="margin-bottom:0.125rem;">Activar Respuestas Automáticas</p>
-                        <p class="form-hint" style="margin-top:0;">El bot responde automáticamente cuando la confianza supera el umbral.</p>
-                    </div>
-                    <label class="toggle">
-                        <input type="checkbox" id="auto-reply" checked>
-                        <span class="toggle-thumb"></span>
-                    </label>
-                </div>
-
                 <div class="form-group">
                     <label class="form-label" for="welcome-message">Mensaje de Bienvenida</label>
                     <textarea id="welcome-message" rows="3" class="form-textarea" placeholder="Hola, soy el asistente virtual. ¿En qué puedo ayudarte?"></textarea>
@@ -147,42 +93,12 @@ ob_start();
         </div>
 
         <div class="card">
-          <div class="card-header"><span class="card-title">Configuración Avanzada</span></div>
+          <div class="card-header"><span class="card-title">Comportamiento</span></div>
           <div class="card-body">
-            <div class="form-stack">
-                <div class="form-group">
-                    <label class="form-label" for="openai-model">Modelo de OpenAI</label>
-                    <select id="openai-model" class="form-select">
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Rápido y económico)</option>
-                        <option value="gpt-4" selected>GPT-4 (Más preciso)</option>
-                        <option value="gpt-4-turbo">GPT-4 Turbo (Equilibrado)</option>
-                    </select>
-                    <p class="form-hint">Modelo de IA usado para generar respuestas.</p>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Temperatura de Respuesta</label>
-                    <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7" class="range-input">
-                    <div class="range-labels">
-                        <span>Precisa</span>
-                        <span id="temperature-value" class="range-value">0.7</span>
-                        <span>Creativa</span>
-                    </div>
-                    <p class="form-hint">Controla la creatividad. 0 = muy precisa, 1 = más creativa.</p>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="timeout">Timeout (segundos)</label>
-                        <input type="number" id="timeout" min="5" max="60" value="30" class="form-input">
-                        <p class="form-hint">Tiempo máximo de espera para OpenAI.</p>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="context-messages-count">Mensajes de Contexto</label>
-                        <input type="number" id="context-messages-count" min="0" max="20" value="5" class="form-input">
-                        <p class="form-hint">Mensajes anteriores visibles al bot. 0 desactiva.</p>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label class="form-label" for="context-messages-count">Mensajes de Contexto</label>
+                <input type="number" id="context-messages-count" min="0" max="20" value="5" class="form-input">
+                <p class="form-hint">Mensajes anteriores que el bot considera al responder. 0 desactiva el historial.</p>
             </div>
           </div>
         </div>

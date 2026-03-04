@@ -12,6 +12,8 @@ try {
         throw new \InvalidArgumentException('last_check timestamp is required');
     }
 
+    $serverTime = date('Y-m-d H:i:s');
+
     $updatedConversations = $db->fetchAll(
         'SELECT id, last_message_at, status FROM conversations 
          WHERE last_message_at > :last_check1 OR updated_at > :last_check2
@@ -23,7 +25,8 @@ try {
     echo json_encode([
         'success' => true,
         'has_updates' => count($updatedConversations) > 0,
-        'updated_conversations' => $updatedConversations
+        'updated_conversations' => $updatedConversations,
+        'server_time' => $serverTime
     ]);
 
 } catch (\Throwable $e) {

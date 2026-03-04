@@ -178,6 +178,12 @@ try {
             'timestamp' => $messageData['timestamp'] ?? time()
         ]);
 
+        $botModeRow = $db->fetchOne(
+            "SELECT setting_value FROM settings WHERE setting_key = 'bot_mode'",
+            []
+        );
+        $botMode = $botModeRow['setting_value'] ?? 'ai';
+
         $unsupportedTypes = ['image', 'document', 'location', 'video', 'sticker', 'contacts'];
         if (in_array($messageData['type'], $unsupportedTypes)) {
             $conversationService = new ConversationService($db);
@@ -185,7 +191,7 @@ try {
                 $messageData['from'],
                 $messageData['contact_name']
             );
-            $unsupportedMsg = "Lo siento, por el momento solo puedo procesar mensajes de *texto* y *audio*. Por favor, envíame tu consulta en un mensaje de texto.";
+            $unsupportedMsg = "Lo siento, por el momento solo puedo procesar mensajes de *texto*. Por favor, envíame tu consulta en un mensaje de texto.";
             $whatsapp->sendMessage($messageData['from'], $unsupportedMsg);
             $conversationService->addMessage($conversation['id'], 'bot', $unsupportedMsg, null, null, 1.0);
             $db->query(
@@ -198,6 +204,24 @@ try {
         }
 
         if ($messageData['type'] === 'audio' && isset($messageData['audio_id'])) {
+            if ($botMode === 'classic') {
+                $conversationService = new ConversationService($db);
+                $conversation = $conversationService->getOrCreateConversation(
+                    $messageData['from'],
+                    $messageData['contact_name']
+                );
+                $audioUnsupportedMsg = "Lo siento, en este modo solo puedo procesar mensajes de *texto*. Por favor, escribe tu consulta.";
+                $whatsapp->sendMessage($messageData['from'], $audioUnsupportedMsg);
+                $conversationService->addMessage($conversation['id'], 'bot', $audioUnsupportedMsg, null, null, 1.0);
+                $db->query(
+                    'UPDATE conversations SET last_bot_message_at = NOW() WHERE id = :id',
+                    [':id' => $conversation['id']]
+                );
+                $logger->info('Audio rejected in classic mode', ['from' => $messageData['from']]);
+                http_response_code(200);
+                echo json_encode(['status' => 'audio_not_supported_classic']);
+                exit;
+            }
             try {
                 $logger->info('Audio message received', ['audio_id' => $messageData['audio_id']]);
                 
@@ -339,12 +363,6 @@ try {
         }
         
         $calendarConfig = \App\Helpers\CalendarConfigHelper::loadFromDatabase($db);
-
-        $botModeRow = $db->fetchOne(
-            "SELECT setting_value FROM settings WHERE setting_key = 'bot_mode'",
-            []
-        );
-        $botMode = $botModeRow['setting_value'] ?? 'ai';
 
         if ($botMode === 'classic') {
             try {

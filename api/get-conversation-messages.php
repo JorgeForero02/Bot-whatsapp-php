@@ -37,10 +37,11 @@ try {
 
     ob_clean();
     echo json_encode([
-        'success' => true,
-        'messages' => $messages,
-        'has_more' => ($offset + $limit) < $total,
-        'total' => $total,
+        'success'     => true,
+        'messages'    => $messages,
+        'has_more'    => ($offset + $limit) < $total,
+        'total'       => $total,
+        'server_time' => date('Y-m-d H:i:s'),
     ]);
 
 } catch (\Throwable $e) {

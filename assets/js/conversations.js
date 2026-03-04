@@ -10,8 +10,8 @@
   let hasMoreMessages       = false;
   let autoRefreshHandle     = null;
   let convsRefreshHandle    = null;
-  let lastCheckTime         = new Date().toISOString();
-  let lastConvsCheck        = new Date().toISOString();
+  let lastCheckTime         = null;
+  let lastConvsCheck        = null;
   let loadConvsAbort        = null;
   let refreshConvsAbort      = null;
 
@@ -206,6 +206,8 @@
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Error');
 
+      if (!append && data.server_time) lastCheckTime = data.server_time;
+
       hasMoreMessages = data.has_more;
       const loadMoreBtn = $('load-more-btn');
       if (loadMoreBtn) loadMoreBtn.classList.toggle('hidden', !hasMoreMessages);
@@ -262,10 +264,12 @@
   function startAutoRefresh() {
     stopAutoRefresh();
     autoRefreshHandle = visibilityInterval(async () => {
-      if (!currentConversationId) return;
+      if (!currentConversationId || !lastCheckTime) return;
       try {
-        const res  = await fetch(`${bp}/api/check-updates.php?last_check=${encodeURIComponent(lastCheckTime)}&conversation_id=${currentConversationId}`, { cache: 'no-store' });
+        const url = `${bp}/api/check-updates.php?last_check=${encodeURIComponent(lastCheckTime)}&conversation_id=${currentConversationId}`;
+        const res  = await fetch(url, { cache: 'no-store' });
         const data = await res.json();
+        if (data.server_time) lastCheckTime = data.server_time;
         if (!data.success || !data.has_update) return;
         const chatMessages = $('chat-messages');
         const atBottom     = chatMessages ? (chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight) < 100 : false;
@@ -274,9 +278,8 @@
         await loadMessages(currentConversationId);
         messagesOffset = prevOffset;
         if (atBottom && chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-        lastCheckTime = new Date().toISOString();
       } catch (_) {}
-    }, 2000);
+    }, 1500);
   }
 
   function stopAutoRefresh() {
@@ -287,11 +290,16 @@
     stopConvsRefresh();
     convsRefreshHandle = visibilityInterval(async () => {
       try {
+        if (!lastConvsCheck) {
+          const init = await fetch(`${bp}/api/check-updates.php`, { cache: 'no-store' });
+          const initData = await init.json();
+          lastConvsCheck = initData.server_time || new Date().toISOString();
+        }
         const res  = await fetch(`${bp}/api/check-conversation-updates.php?last_check=${encodeURIComponent(lastConvsCheck)}`, { cache: 'no-store' });
         const data = await res.json();
+        if (data.server_time) lastConvsCheck = data.server_time;
         if (!data.success || !data.has_updates) return;
         await refreshConversations(currentFilter === 'all' ? null : currentFilter);
-        lastConvsCheck = new Date().toISOString();
       } catch (_) {}
     }, 3000);
   }

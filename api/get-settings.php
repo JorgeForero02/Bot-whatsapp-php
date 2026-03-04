@@ -15,13 +15,6 @@ try {
         'systemPrompt' => 'Eres un asistente virtual útil y amigable.',
         'welcomeMessage' => 'Hola! Soy un asistente virtual. ¿En qué puedo ayudarte?',
         'errorMessage' => 'Lo siento, no encontré información relevante. Un operador te atenderá pronto.',
-        'confidenceThreshold' => 0.7,
-        'maxResults' => 5,
-        'chunkSize' => 1000,
-        'autoReply' => true,
-        'openaiModel' => 'gpt-4',
-        'temperature' => 0.7,
-        'timeout' => 30,
         'contextMessagesCount' => 5,
         'calendarEnabled' => false,
         'botMode' => 'ai',
@@ -38,27 +31,6 @@ try {
                 break;
             case 'bot_fallback_message':
                 $response['errorMessage'] = $setting['setting_value'];
-                break;
-            case 'confidence_threshold':
-                $response['confidenceThreshold'] = floatval($setting['setting_value']);
-                break;
-            case 'max_results':
-                $response['maxResults'] = intval($setting['setting_value']);
-                break;
-            case 'chunk_size':
-                $response['chunkSize'] = intval($setting['setting_value']);
-                break;
-            case 'auto_reply':
-                $response['autoReply'] = $setting['setting_value'] === 'true';
-                break;
-            case 'openai_model':
-                $response['openaiModel'] = $setting['setting_value'];
-                break;
-            case 'temperature':
-                $response['temperature'] = floatval($setting['setting_value']);
-                break;
-            case 'timeout':
-                $response['timeout'] = intval($setting['setting_value']);
                 break;
             case 'context_messages_count':
                 $response['contextMessagesCount'] = intval($setting['setting_value']);
